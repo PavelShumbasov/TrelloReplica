@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block title %}Главная{% endblock %}
+{% block head %}
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
+{% endblock %}
+
+{% block header %}
+<h1>Все публичные доски</h1>
+{% endblock %}
+
+{% block content %}
+<hr>
+{% for cat, message in get_flashed_messages(True) %}
+<div class="{{ cat }}" role="alert">{{ message }}</div>
+
+{% endfor %}
+
+<h1>Поиск доски</h1>
+<script>
+    function find_board() {
+        $.ajax({
+            type: "POST",
+            url: "/find_board",
+            data: $('form').serialize(),
+            type: 'POST',
+            success: function (response) {
+                var json = jQuery.parseJSON(response)
+                $('#result').html(json.result)
+                console.log(response);
+            },
+            error: function (error) {
+                console.log(error);
+            }
+        });
+    }
+</script>
+<form action="/find_board" method="post" name="form">
+    <label for="name">Введите название доски:</label>
+    <input id="name" name="name" type="text">
+    <input type="button" class="btn btn-primary" value="Проверить" onclick="find_board();">
+</form>
+<div id="result"></div>
+
+<div class="ml-1" style="margin-bottom: 20px">
+
+</div>
+
+{% for board in boards %}
+{% if not board.is_private %}
+<a href={{ url_for('views.view_board', id=board.id) }} >
+<div class="card border-primary mb-3" style="max-width: 18rem;">
+    <div class="card">
+        <div class="card-body">
+            {{ board.name }}
+        </div>
+    </div>
+</div>
+</a>
+
+{% endif %}
+
+{% endfor %}
+{% if not boards %}
+<h3>No boards</h3>
+{% endif %}
+
+
+{% endblock %}

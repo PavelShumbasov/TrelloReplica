@@ -1,0 +1,12 @@
+{% extends 'signup.html' %}
+{% block title %}Редактировать профиль{% endblock %}
+{% block header %}
+    <h1>Редактирование профиля</h1>
+{% endblock %}
+
+{% block link_for %}
+    {{ url_for('auth.edit_profile') }}
+{% endblock %}
+
+
+{% block button_name %} "Отредактировать" {% endblock %}

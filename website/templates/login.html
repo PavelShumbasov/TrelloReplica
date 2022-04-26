@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}Авторизация{% endblock %}
+{% block header %}
+    <h1>Авторизация</h1>
+{% endblock %}
+
+{% block content %}
+    <hr>
+    {% for cat, message in get_flashed_messages(True) %}
+        <div class="{{ cat }}" role="alert">{{ message }}</div>
+
+    {% endfor %}
+
+    <form action="{{ url_for('auth.login') }}" method="post">
+        <input type="text" name="email">
+        <input type="password" name="password">
+        <input type="submit" value="Log in">
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="" id="remember_me" name="remember_me">
+            <label class="form-check-label" for="is_private">
+                Запомнить меня
+            </label>
+        </div>
+    </form>
+
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}Просмотр досок{% endblock %}
+{% block header %}
+    <h1>Просмотр доски</h1>
+{% endblock %}
+
+{% block content %}
+    <hr>
+    {% for cat, message in get_flashed_messages(True) %}
+        <div class="{{ cat }}" role="alert">{{ message }}</div>
+
+    {% endfor %}
+    <h1> {{ board.name }} </h1>
+
+    <div class="card" style="width: 18rem;">
+        <ul class="list-group list-group-flush">
+            {% for task in tasks %}
+                <div class="card border-primary mb-3" style="max-width: 18rem;">
+                    <li class="list-group-item">{{ task.text }}
+                        {% if can_delete %}
+                            <a href={{ url_for('views.delete_task', id=task.id) }}>
+                                <button type="submit" class="btn btn-primary float-end">Удалить</button>
+                            </a>
+                        {% endif %}
+                    </li>
+                </div>
+            {% endfor %}
+        </ul>
+    </div>
+
+
+    {% if can_delete %}
+        <div class="card w-50">
+            <div class="card-body">
+                <h5 class="card-title">Добавить новую задачу</h5>
+                <p class="card-text">Здесь вы можете добавить новую задачу в Вашу доску</p>
+                <form action="{{ url_for('views.view_board', id=board.id) }}" method="post">
+                    <label for="text">Задача</label>
+                    <input type="text" name="text">
+                    <input type="submit" class="btn btn-primary" value={% block button_name %}"Создать"{% endblock %}>
+                </form>
+            </div>
+        </div>
+    {% endif %}
+
+
+
+{% endblock %}
