@@ -11,7 +11,7 @@ Base = declarative_base()
 
 
 def get_db():
-    db = sessionmaker()
+    db = session_maker()
     try:
         yield db
     finally:

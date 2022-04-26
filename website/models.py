@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, ForeignKey, String, Date, Boolean, Text
-from database import Base, engine
+from .database import Base
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -14,7 +14,7 @@ class User(Base):
     boards = relationship("Board", back_populates="author")
     tasks = relationship("Task", back_populates="author")
     tg_user = relationship("TgUser", back_populates="user")
-    collaborators = relationship("Collaborator", back_populates="user")
+    # collaborators = relationship("Collaborator", back_populates="user")
 
     def __repr__(self):  # Перегрузка текстового представления
         return f"<User({self.id},{self.username})>"
@@ -33,7 +33,7 @@ class Board(Base):
     theme = relationship("Theme", back_populates="boards")
     b_column = relationship("BColumn", back_populates="board")
     tasks = relationship("Task", back_populates="board")
-    collaborators = relationship("Collaborator", back_populates="board")
+    # collaborators = relationship("Collaborator", back_populates="board")
 
     def __repr__(self):
         return f"<Board({self.id},{self.name})>"
@@ -105,6 +105,7 @@ class Tag(Base):
     color_id = Column(Integer, ForeignKey("color.id", ondelete="CASCADE"), nullable=False)
 
     color = relationship("Color", back_populates="tag")
+    tasks = relationship("Task", back_populates="tag")
 
     def __repr__(self):
         return f"<Tag({self.id},{self.text})>"
@@ -127,11 +128,8 @@ class Collaborator(Base):
     user_id = Column(Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False, primary_key=True)
     board_id = Column(Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False, primary_key=True)
 
-    user = relationship("User", back_populates="collaborators")
-    board = relationship("Board", back_populates="collaborators")
+    # user = relationship("User", back_populates="collaborators", foreign_keys=[user_id])
+    # board = relationship("Board", back_populates="collaborators", foreign_keys=[board_id])
 
     def __repr__(self):
         return f"<Collaborator({self.user_id},{self.board_id})>"
-
-
-Base.metadata.create_all(engine)
