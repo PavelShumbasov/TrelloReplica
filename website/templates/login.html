@@ -1,26 +1,39 @@
 {% extends 'base.html' %}
 {% block title %}Авторизация{% endblock %}
 {% block header %}
-    <h1>Авторизация</h1>
+<h1>Авторизация</h1>
 {% endblock %}
 
 {% block content %}
-    <hr>
-    {% for cat, message in get_flashed_messages(True) %}
-        <div class="{{ cat }}" role="alert">{{ message }}</div>
 
-    {% endfor %}
+{% for message in get_flashed_messages(request) %}
+<div class="{{ message.category }}" role="alert">{{ message.message }}</div>
+{% endfor %}
 
-    <form action="{{ url_for('auth.login') }}" method="post">
-        <input type="text" name="email">
-        <input type="password" name="password">
-        <input type="submit" value="Log in">
-        <div class="form-check">
-            <input class="form-check-input" type="checkbox" value="" id="remember_me" name="remember_me">
-            <label class="form-check-label" for="is_private">
-                Запомнить меня
-            </label>
-        </div>
-    </form>
+<div class="card border-primary mb-3" style="width: 22rem;">
+    <div class="card-body">
+        <form action="/login" class="form-horizontal" method="POST">
+            <div class="mb-3">
+                <label for="username" class="form-label">Username</label>
+                <input type="text" class="form-control" name="username" id="username">
+            </div>
 
+            <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" class="form-control" id="password" name="password">
+            </div>
+
+            <div class="form-check">
+                <label class="form-check-label" for="is_private">
+                    Запомнить меня
+                </label>
+                <input class="form-check-input" type="checkbox" value="" id="remember_me" name="remember_me">
+
+            </div>
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+    </div>
+</div>
+
+<a href="/login_google">Войти с помощью Google</a>
 {% endblock %}

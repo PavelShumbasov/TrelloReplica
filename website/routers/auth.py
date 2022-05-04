@@ -19,7 +19,7 @@ from authlib.integrations.starlette_client import OAuth, OAuthError
 import json
 
 
-config = Config('.env')
+config = Config('../../.env')
 oauth = OAuth(config)
 print(config)
 print(oauth)
@@ -32,7 +32,6 @@ oauth.register(
         'scope': 'openid email profile'
     }
 )
-
 
 router = APIRouter(tags=["auth"])
 templates = Jinja2Templates(directory="website/templates")
