@@ -1,37 +1,17 @@
-from fastapi import APIRouter, Request, Depends, status
-from fastapi.responses import RedirectResponse, HTMLResponse
+from fastapi import APIRouter, Depends, status
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from typing import Any
 from ..models import User
 from ..schemas import UserAuth
-from ..database import get_db
+from ..database import get_db, DBContext
 from werkzeug.security import generate_password_hash, check_password_hash
-from fastapi_login import LoginManager  # Login-manager Class
-from fastapi_login.exceptions import InvalidCredentialsException  # Exception class
-
-from starlette.config import Config
+from fastapi_login import LoginManager
 from starlette.requests import Request
-from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import HTMLResponse, RedirectResponse
-from authlib.integrations.starlette_client import OAuth, OAuthError
-import json
-
-
-config = Config('../../.env')
-oauth = OAuth(config)
-print(config)
-print(oauth)
-
-CONF_URL = 'https://accounts.google.com/.well-known/openid-configuration'
-oauth.register(
-    name='google',
-    server_metadata_url=CONF_URL,
-    client_kwargs={
-        'scope': 'openid email profile'
-    }
-)
+from authlib.integrations.starlette_client import OAuthError
+from . import oauth
 
 router = APIRouter(tags=["auth"])
 templates = Jinja2Templates(directory="website/templates")
@@ -52,9 +32,11 @@ manager.not_authenticated_exception = NotAuthenticatedException
 
 
 @manager.user_loader()
-def load_user(username: str, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.username == username).first()
-    return user
+def load_user(username: str, db: Session = None):
+    if db is None:
+        with DBContext() as db:
+            return db.query(User).filter(User.username == username).first()
+    return db.query(User).filter(User.username == username).first()
 
 
 def flash(request: Request, message: Any, category: str = "primary") -> None:
@@ -97,8 +79,13 @@ async def sign_up(request: Request, user: UserAuth = Depends(UserAuth), db: Sess
             user.password1, method='sha256'))
         db.add(new_user)
         db.commit()
-        # login_user(new_user, remember=True)
+
         flash(request, 'User created!', category='alert alert-success')
+
+        access_token = manager.create_access_token(data={"sub": user.username})
+        resp = RedirectResponse(url="/ok", status_code=status.HTTP_302_FOUND)
+        manager.set_cookie(resp, access_token)
+        return resp
 
     return templates.TemplateResponse("signup.html", {"request": request})
 
@@ -113,10 +100,12 @@ async def login(request: Request, data: OAuth2PasswordRequestForm = Depends()):
     username = data.username
     password = data.password
     user = load_user(username)
+
     if not user:
         flash(request, 'No such username', category='alert alert-danger')
         return templates.TemplateResponse("login.html", {"request": request})
-    elif password != user['password']:
+
+    elif not check_password_hash(user.password, password):
         flash(request, 'Incorrect password', category='alert alert-danger')
         return templates.TemplateResponse("login.html", {"request": request})
     else:
@@ -133,22 +122,15 @@ def logout(request: Request, user=Depends(manager)):
     return resp
 
 
-@router.post("/ok")
+@router.get("/ok")
 async def ok(request: Request):
     return "ok"
 
 
-@router.get('/')
-async def homepage(request: Request):
-    user = request.session.get('user')
-    if user:
-        data = json.dumps(user)
-        html = (
-            f'<pre>{data}</pre>'
-            '<a href="/logout">logout</a>'
-        )
-        return HTMLResponse(html)
-    return HTMLResponse('<a href="/login">login</a>')
+@router.get("/private")
+def get_private_endpoint(user=Depends(manager)):
+    print(user)
+    return "You are an authentciated user"
 
 
 @router.get('/login_google')
@@ -163,8 +145,9 @@ async def auth(request: Request, db: Session = Depends(get_db)):
         token = await oauth.google.authorize_access_token(request)
     except OAuthError as error:
         return HTMLResponse(f'<h1>{error.error}</h1>')
-    user_email = token.get('email')
-    username = token.get("name")
+
+    user_email = token.get('userinfo', {}).get('email')
+    username = token.get('userinfo', {}).get("given_name")
 
     user = db.query(User).filter(User.email == user_email).first()
 
@@ -177,4 +160,4 @@ async def auth(request: Request, db: Session = Depends(get_db)):
     resp = RedirectResponse(url="/ok", status_code=status.HTTP_302_FOUND)
     manager.set_cookie(resp, access_token)
 
-    return RedirectResponse(url='/ok')
+    return resp
