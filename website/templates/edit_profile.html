@@ -4,9 +4,37 @@
     <h1>Редактирование профиля</h1>
 {% endblock %}
 
-{% block link_for %}
-    {{ url_for('auth.edit_profile') }}
+{% block content %}
+
+{% for message in get_flashed_messages(request) %}
+<div class="{{ message.category }}" role="alert">{{ message.message }}</div>
+{% endfor %}
+
+<div class="card border-primary mb-3" style="width: 22rem;">
+    <div class="card-body">
+        <form action="/edit" role="form" class="form-horizontal" method="POST">
+            <div class="mb-3">
+                <label for="email" class="form-label">Email address</label>
+                <input type="email" class="form-control" id="email" name="email" value={{user.email}}>
+            </div>
+            <div class="mb-3">
+                <label for="username" class="form-label">Username</label>
+                <input type="text" class="form-control" id="username" name="username" value={{user.username}}>
+                {#
+                <div id="emailHelp" class="form-text">We'll never share your email with anyone else.</div>
+                #}
+            </div>
+            <div class="mb-3">
+                <label for="password1" class="form-label">Password</label>
+                <input type="password" class="form-control" id="password1" name="password1">
+            </div>
+            <div class="mb-3">
+                <label for="password2" class="form-label">Password</label>
+                <input type="password" class="form-control" id="password2" name="password2">
+            </div>
+            <!--<input type="submit" class="btn btn-primary" value={% block button_name %}"Создать"{% endblock %}/>-->
+            <button type="submit" class="btn btn-primary">Отредактировать</button>
+        </form>
+    </div>
+</div>
 {% endblock %}
-
-
-{% block button_name %} "Отредактировать" {% endblock %}

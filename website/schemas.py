@@ -1,3 +1,6 @@
+from typing import Optional
+from datetime import date
+
 from pydantic import BaseModel
 from fastapi import Form
 
@@ -15,3 +18,23 @@ class UserAuth(BaseModel):
     username: str
     password1: str
     password2: str
+
+
+@get_form_body
+class BoardForm(BaseModel):
+    name: str
+    is_private: Optional[str]
+    theme_id: int
+
+
+@get_form_body
+class TaskForm(BaseModel):
+    text: str
+    tag_id: int
+    date_deadline: date
+
+
+@get_form_body
+class ColumnForm(BaseModel):
+    name: str
+    color_id: int

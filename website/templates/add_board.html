@@ -2,31 +2,36 @@
 {% block title %}Добавить доску{% endblock %}
 
 {% block header %}
-    <h1>Добавить новую доску</h1>
+<h1>Добавить новую доску</h1>
 {% endblock %}
 
 {% block content %}
-    <hr>
-    {% for cat, message in get_flashed_messages(True) %}
-        <div class="{{ cat }}" role="alert">{{ message }}</div>
+{% for message in get_flashed_messages(request) %}
+<div class="{{ message.category }}" role="alert">{{ message.message }}</div>
+{% endfor %}
 
-    {% endfor %}
 
-    <div class="card w-50">
-        <div class="card-body">
-            <h5 class="card-title">Создать новую доску</h5>
-            <p class="card-text">Здесь вы можете создать новую доску</p>
-            <form action="{{ url_for('views.add_board') }}" method="post">
-                <label for="name">Название доски</label>
-                <input type="text" name="name">
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" value="" id="is_private" name="is_private">
-                    <label class="form-check-label" for="is_private">
-                        Приватная доска
-                    </label>
-                </div>
-                <input type="submit" class="btn btn-primary" value={% block button_name %}"Создать"{% endblock %}>
-            </form>
-        </div>
+<div class="card w-50">
+    <div class="card-body">
+        <h5 class="card-title">Создать новую доску</h5>
+        <p class="card-text">Здесь вы можете создать новую доску</p>
+        <form action="/add_board" method="post">
+            <label for="name">Название доски</label>
+            <input type="text" name="name" id="name">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" value="" id="is_private" name="is_private">
+                <label class="form-check-label" for="is_private">
+                    Приватная доска
+                </label>
+            </div>
+            <label for="theme_id">Тематика</label>
+            <select class="form-control form-control-sm" id="theme_id" name="theme_id">
+                {% for theme in themes %}
+                <option value={{theme.id}}>{{theme.name}}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary">Создать</button>
+        </form>
     </div>
+</div>
 {% endblock %}

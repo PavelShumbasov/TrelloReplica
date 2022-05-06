@@ -1,8 +1,6 @@
 from fastapi import APIRouter, Depends, status
 from fastapi.security import OAuth2PasswordRequestForm
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from typing import Any
 from ..models import User
 from ..schemas import UserAuth
 from ..database import get_db, DBContext
@@ -11,10 +9,9 @@ from fastapi_login import LoginManager
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, RedirectResponse
 from authlib.integrations.starlette_client import OAuthError
-from . import oauth
+from . import oauth, templates, flash
 
 router = APIRouter(tags=["auth"])
-templates = Jinja2Templates(directory="website/templates")
 
 
 class NotAuthenticatedException(Exception):
@@ -37,19 +34,6 @@ def load_user(username: str, db: Session = None):
         with DBContext() as db:
             return db.query(User).filter(User.username == username).first()
     return db.query(User).filter(User.username == username).first()
-
-
-def flash(request: Request, message: Any, category: str = "primary") -> None:
-    if "_messages" not in request.session:
-        request.session["_messages"] = []
-    request.session["_messages"].append({"message": message, "category": category})
-
-
-def get_flashed_messages(request: Request):
-    return request.session.pop("_messages") if "_messages" in request.session else []
-
-
-templates.env.globals['get_flashed_messages'] = get_flashed_messages
 
 
 @router.get("/sign_up")
@@ -161,3 +145,41 @@ async def auth(request: Request, db: Session = Depends(get_db)):
     manager.set_cookie(resp, access_token)
 
     return resp
+
+
+@router.get("/edit")
+async def edit(request: Request, user=Depends(manager)):
+    return templates.TemplateResponse("edit_profile.html", {"request": request, "user": user})
+
+
+@router.post("/edit")
+async def edit(request: Request, user: UserAuth = Depends(UserAuth), db: Session = Depends(get_db),
+               current_user=Depends(manager)):
+    email_exists = db.query(User).filter(User.email == user.email).first()
+    username_exists = db.query(User).filter(User.username == user.username).first()
+
+    if email_exists and email_exists.email != current_user.email:
+        flash(request, 'Email is already in use.', category='alert alert-danger')
+    elif username_exists and username_exists.username != current_user.username:
+        flash(request, 'Username is already in use.', category='alert alert-danger')
+    elif user.password1 != user.password2:
+        flash(request, 'Password do not match!', category='alert alert-danger')
+    elif len(user.username) < 5:
+        flash(request, 'Username is too short.', category='alert alert-danger')
+    elif len(user.password1) < 6:
+        flash(request, 'Password is too short.', category='alert alert-danger')
+    elif len(user.email) < 4:
+        flash(request, "Email is invalid.", category='alert alert-danger')
+    else:
+        current_user.email = user.email
+        current_user.username = user.username
+        current_user.password = generate_password_hash(user.password1, method='sha256')
+        db.commit()
+        flash(request, 'User updated!', category="alert alert-info")
+
+        access_token = manager.create_access_token(data={"sub": user.username})
+        resp = RedirectResponse(url="/edit", status_code=status.HTTP_302_FOUND)
+        manager.set_cookie(resp, access_token)
+        return resp
+
+    return templates.TemplateResponse("edit_profile.html", {"request": request})

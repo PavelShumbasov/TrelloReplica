@@ -9,10 +9,9 @@
 {% endblock %}
 
 {% block content %}
-<hr>
-{% for cat, message in get_flashed_messages(True) %}
-<div class="{{ cat }}" role="alert">{{ message }}</div>
 
+{% for message in get_flashed_messages(request) %}
+<div class="{{ message.category }}" role="alert">{{ message.message }}</div>
 {% endfor %}
 
 <h1>Поиск доски</h1>
@@ -47,14 +46,14 @@
 
 {% for board in boards %}
 {% if not board.is_private %}
-<a href={{ url_for('views.view_board', id=board.id) }} >
-<div class="card border-primary mb-3" style="max-width: 18rem;">
-    <div class="card">
-        <div class="card-body">
-            {{ board.name }}
+<a href="/view_board">
+    <div class="card border-primary mb-3" style="max-width: 18rem;">
+        <div class="card">
+            <div class="card-body">
+                {{ board.name }}
+            </div>
         </div>
     </div>
-</div>
 </a>
 
 {% endif %}
