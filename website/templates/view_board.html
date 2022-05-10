@@ -1,48 +1,98 @@
 {% extends 'base.html' %}
 {% block title %}Просмотр досок{% endblock %}
 {% block header %}
-    <h1>Просмотр доски</h1>
+<h1>Просмотр доски</h1>
 {% endblock %}
 
 {% block content %}
-    <hr>
-    {% for cat, message in get_flashed_messages(True) %}
-        <div class="{{ cat }}" role="alert">{{ message }}</div>
 
-    {% endfor %}
-    <h1> {{ board.name }} </h1>
+{% for message in get_flashed_messages(request) %}
+<div class="{{ message.category }}" role="alert">{{ message.message }}</div>
+{% endfor %}
 
-    <div class="card" style="width: 18rem;">
-        <ul class="list-group list-group-flush">
-            {% for task in tasks %}
-                <div class="card border-primary mb-3" style="max-width: 18rem;">
+<h1> {{ board.name }} </h1>
+
+<div class="card" style="width: 18rem;">
+    <ul class="list-group list-group-horizontal">
+        {% for col in board.b_columns %}
+        <li class="list-group-item">
+            <div class="card border-primary mb-3" style="max-width: 18rem;">
+                <p>{{col.name}}</p>
+                <ul class="list-group list-group-flush">
+                    {% for task in col.tasks %}
                     <li class="list-group-item">{{ task.text }}
                         {% if can_delete %}
-                            <a href={{ url_for('views.delete_task', id=task.id) }}>
-                                <button type="submit" class="btn btn-primary float-end">Удалить</button>
-                            </a>
+                        <a href="{{ url_for('delete_task', id=task.id) }}">
+                            <button type="submit" class="btn btn-primary float-end">Удалить</button>
+                        </a>
                         {% endif %}
                     </li>
-                </div>
-            {% endfor %}
-        </ul>
-    </div>
+                    {% endfor %}
+                    {% if can_delete %}
 
+                    <li class="list-group-item">
+                        <div class="card w-50">
+                            <div class="card-body">
+                                <h5 class="card-title">Добавить новую задачу</h5>
+                                <p class="card-text">Здесь вы можете добавить новую задачу в вашу доску</p>
+                                <form action="{{ url_for('add_task', board_id=board.id, column_id=col.id) }}"
+                                      method="post">
+                                    <label for="text">Задача</label>
+                                    <input type="text" name="text" id="text">
+                                    <!--                                    <label for="tag">Тэг</label>-->
+                                    <!--                                    <input type="text" name="tag" id="tag">-->
+                                    <!--                                    <form>-->
+                                    <!--                                        <div class="form-group">-->
+                                    <!--                                            <label for="inputDate">Введите дату:</label>-->
+                                    <!--                                            <input type="date" class="form-control" id="inputDate" name="inputDate">-->
+                                    <!--                                        </div>-->
 
-    {% if can_delete %}
-        <div class="card w-50">
+                                    <button type="submit" class="btn btn-primary">Создать</button>
+                                </form>
+                            </div>
+                        </div>
+                    </li>
+
+                    {% endif %}
+                </ul>
+            </div>
+        </li>
+        {% endfor %}
+        <li class="list-group-item">
+            {% if can_delete %}
             <div class="card-body">
-                <h5 class="card-title">Добавить новую задачу</h5>
-                <p class="card-text">Здесь вы можете добавить новую задачу в Вашу доску</p>
-                <form action="{{ url_for('views.view_board', id=board.id) }}" method="post">
-                    <label for="text">Задача</label>
-                    <input type="text" name="text">
-                    <input type="submit" class="btn btn-primary" value={% block button_name %}"Создать"{% endblock %}>
+                <h5 class="card-title">Добавить новую колонку</h5>
+                <p class="card-text">Здесь вы можете добавить новую колонку в вашу доску</p>
+                <form action="{{ url_for('add_column', id=board.id) }}" method="post">
+                    <label for="name">Название</label>
+                    <input type="text" name="name" id="name">
+                    <label for="color_id">Цвет</label>
+                    <select class="form-control form-control-sm" id="color_id" name="color_id">
+                        {% for color in colors %}
+                        <option value={{color.id}}>{{color.value}}</option>
+                        {% endfor %}
+                    </select>
+                    <input type="submit" class="btn btn-primary" value="Создать">
                 </form>
             </div>
-        </div>
-    {% endif %}
+            {% endif %}
+        </li>
+    </ul>
+</div>
 
+<!--{% if can_delete %}-->
+<!--<div class="card w-50">-->
+<!--    <div class="card-body">-->
+<!--        <h5 class="card-title">Добавить новую задачу</h5>-->
+<!--        <p class="card-text">Здесь вы можете добавить новую задачу в вашу доску</p>-->
+<!--        <form action="{{ url_for('view_board', id=board.id) }}" method="post">-->
+<!--            <label for="text">Задача</label>-->
+<!--            <input type="text" name="text" id="text">-->
+<!--            <input type="submit" class="btn btn-primary" value="Создать">-->
+<!--        </form>-->
+<!--    </div>-->
+<!--</div>-->
+<!--{% endif %}-->
 
 
 {% endblock %}

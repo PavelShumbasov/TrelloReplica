@@ -23,15 +23,13 @@ class UserAuth(BaseModel):
 @get_form_body
 class BoardForm(BaseModel):
     name: str
-    is_private: Optional[str]
+    is_private: bool = False
     theme_id: int
 
 
 @get_form_body
 class TaskForm(BaseModel):
     text: str
-    tag_id: int
-    date_deadline: date
 
 
 @get_form_body

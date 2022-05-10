@@ -1,14 +1,12 @@
 {% extends 'base.html' %}
 {% block title %}Доска нет{% endblock %}
 {% block header %}
-    <h1>Доска недоступна</h1>
+<h1>Доска недоступна</h1>
 {% endblock %}
 
 {% block content %}
-    <hr>
-    {% for cat, message in get_flashed_messages(True) %}
-        <div class="{{ cat }}" role="alert">{{ message }}</div>
-
-    {% endfor %}
+{% for message in get_flashed_messages(request) %}
+<div class="{{ message.category }}" role="alert">{{ message.message }}</div>
+{% endfor %}
 
 {% endblock %}

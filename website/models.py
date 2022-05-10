@@ -31,7 +31,7 @@ class Board(Base):
 
     author = relationship("User", back_populates="boards")
     theme = relationship("Theme", back_populates="boards")
-    b_column = relationship("BColumn", back_populates="board")
+    b_columns = relationship("BColumn", back_populates="board")
     tasks = relationship("Task", back_populates="board")
     # collaborators = relationship("Collaborator", back_populates="board")
 
@@ -58,7 +58,7 @@ class BColumn(Base):
     board_id = Column(Integer, ForeignKey("board.id", ondelete="CASCADE"), nullable=False)
     color_id = Column(Integer, ForeignKey("color.id", ondelete="CASCADE"), nullable=False)
 
-    board = relationship("Board", back_populates="b_column")
+    board = relationship("Board", back_populates="b_columns")
     color = relationship("Color", back_populates="b_column")
     tasks = relationship("Task", back_populates="b_column")
 
@@ -86,8 +86,8 @@ class Task(Base):
     author_id = Column(Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
     column_id = Column(Integer, ForeignKey("b_column.id", ondelete="CASCADE"), nullable=False)
     board_id = Column(Integer, ForeignKey("board.id", ondelete="CASCADE"), nullable=False)
-    date_deadline = Column(Date())
-    tag_id = Column(Integer, ForeignKey("tag.id", ondelete="CASCADE"), nullable=False)
+    date_deadline = Column(Date(), default=None)
+    tag_id = Column(Integer, ForeignKey("tag.id", ondelete="CASCADE"), default=None)
 
     author = relationship("User", back_populates="tasks")
     b_column = relationship("BColumn", back_populates="tasks")
@@ -113,7 +113,8 @@ class Tag(Base):
 
 class TgUser(Base):
     __tablename__ = "tg_user"
-    tg_id = Column(Integer, nullable=False, unique=True, primary_key=True)
+    id = Column(Integer, nullable=False, unique=True, primary_key=True, autoincrement=True)
+    tg_id = Column(Integer, nullable=False, unique=True)
     user_id = Column(Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False, unique=True)
     is_subscribed = Column(Boolean, default=False)
 
@@ -125,8 +126,9 @@ class TgUser(Base):
 
 class Collaborator(Base):
     __tablename__ = "collaborator"
-    user_id = Column(Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False, primary_key=True)
-    board_id = Column(Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False, primary_key=True)
+    id = Column(Integer, nullable=False, unique=True, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
+    board_id = Column(Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
 
     # user = relationship("User", back_populates="collaborators", foreign_keys=[user_id])
     # board = relationship("Board", back_populates="collaborators", foreign_keys=[board_id])

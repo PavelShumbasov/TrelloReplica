@@ -11,17 +11,17 @@
 {% endfor %}
 
 {% for board in boards %}
-<a href={{ views.url_path_for('view_board', id=board.id) }}>
-<div class="card border-primary mb-3" style="max-width: 18rem;">
-    <div class="card">
-        <div class="card-body">
-            {{ board.name }}
-            <a href={{ views.url_path_for('view_board', id=board.id) }}>
-            <button type="submit" class="btn btn-primary float-end">Удалить</button>
-            </a>
+<a href='{{ url_for("view_board", id=board.id) }}'>
+    <div class="card border-primary mb-3" style="max-width: 18rem;">
+        <div class="card">
+            <div class="card-body">
+                {{ board.name }}
+                <a href="{{ url_for('view_board', id=board.id) }}">
+                    <button type="submit" class="btn btn-primary float-end">Удалить</button>
+                </a>
+            </div>
         </div>
     </div>
-</div>
 </a>
 
 

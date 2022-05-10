@@ -10,6 +10,7 @@ from starlette.requests import Request
 from starlette.responses import HTMLResponse, RedirectResponse
 from authlib.integrations.starlette_client import OAuthError
 from . import oauth, templates, flash
+from datetime import timedelta
 
 router = APIRouter(tags=["auth"])
 
@@ -67,7 +68,7 @@ async def sign_up(request: Request, user: UserAuth = Depends(UserAuth), db: Sess
         flash(request, 'User created!', category='alert alert-success')
 
         access_token = manager.create_access_token(data={"sub": user.username})
-        resp = RedirectResponse(url="/ok", status_code=status.HTTP_302_FOUND)
+        resp = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
         manager.set_cookie(resp, access_token)
         return resp
 
@@ -83,7 +84,13 @@ async def login(request: Request):
 async def login(request: Request, data: OAuth2PasswordRequestForm = Depends()):
     username = data.username
     password = data.password
+    remember_me = (await request.form()).get("remember_me")
+    print(remember_me)
     user = load_user(username)
+
+    token_time = None
+    if remember_me:
+        token_time = timedelta(weeks=4)
 
     if not user:
         flash(request, 'No such username', category='alert alert-danger')
@@ -93,28 +100,17 @@ async def login(request: Request, data: OAuth2PasswordRequestForm = Depends()):
         flash(request, 'Incorrect password', category='alert alert-danger')
         return templates.TemplateResponse("login.html", {"request": request})
     else:
-        access_token = manager.create_access_token(data={"sub": username})
-        resp = RedirectResponse(url="/ok", status_code=status.HTTP_302_FOUND)
+        access_token = manager.create_access_token(data={"sub": username}, expires=token_time)
+        resp = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
         manager.set_cookie(resp, access_token)
     return resp
 
 
 @router.get('/logout', response_class=HTMLResponse)
 def logout(request: Request, user=Depends(manager)):
-    resp = RedirectResponse(url="/ok", status_code=status.HTTP_302_FOUND)
+    resp = RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     manager.set_cookie(resp, "")
     return resp
-
-
-@router.get("/ok")
-async def ok(request: Request):
-    return "ok"
-
-
-@router.get("/private")
-def get_private_endpoint(user=Depends(manager)):
-    print(user)
-    return "You are an authentciated user"
 
 
 @router.get('/login_google')
@@ -140,8 +136,8 @@ async def auth(request: Request, db: Session = Depends(get_db)):
         db.add(user)
         db.commit()
 
-    access_token = manager.create_access_token(data={"sub": username})
-    resp = RedirectResponse(url="/ok", status_code=status.HTTP_302_FOUND)
+    access_token = manager.create_access_token(data={"sub": username}, expires=timedelta(weeks=4))
+    resp = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
     manager.set_cookie(resp, access_token)
 
     return resp

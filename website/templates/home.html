@@ -46,7 +46,7 @@
 
 {% for board in boards %}
 {% if not board.is_private %}
-<a href="/view_board">
+<a href="{{url_for('view_board', id=board.id)}}">
     <div class="card border-primary mb-3" style="max-width: 18rem;">
         <div class="card">
             <div class="card-body">
