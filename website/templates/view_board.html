@@ -4,95 +4,107 @@
 <h1>Просмотр доски</h1>
 {% endblock %}
 
+{% block head %}
+<style>
+    .btn-circle {
+        width: 38px;
+        height: 38px;
+        border-radius: 19px;
+        text-align: center;
+        padding-left: 0;
+        padding-right: 0;
+        font-size: 16px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 
 {% for message in get_flashed_messages(request) %}
 <div class="{{ message.category }}" role="alert">{{ message.message }}</div>
 {% endfor %}
+<div class="card text-center" style="width: 100%;">
+    <div class="card-body">
 
-<h1> {{ board.name }} </h1>
 
-<div class="card" style="width: 18rem;">
-    <ul class="list-group list-group-horizontal">
-        {% for col in board.b_columns %}
-        <li class="list-group-item">
-            <div class="card border-primary mb-3" style="max-width: 18rem;">
-                <p>{{col.name}}</p>
-                <ul class="list-group list-group-flush">
-                    {% for task in col.tasks %}
-                    <li class="list-group-item">{{ task.text }}
-                        {% if can_delete %}
-                        <a href="{{ url_for('delete_task', id=task.id) }}">
-                            <button type="submit" class="btn btn-primary float-end">Удалить</button>
+        <h1> {{ board.name }} </h1>
+
+        <div class="card" style="width: 20rem;">
+            <ul class="list-group list-group-horizontal">
+                {% for col in board.b_columns %}
+                <li class="list-group-item rounded border border-{{ col.color.value }}" style="width: 20rem;">
+                    <div class="fs-2 mb-3 text-nowrap text-{{ col.color.value }}">{{ col.name }}
+                        <a href="{{url_for('delete_column', column_id=col.id)}}">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                 class="bi bi-x-square-fill text-{{ col.color.value }}" viewBox="0 0 16 16">
+                                <path d="M2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2zm3.354 4.646L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 1 1 .708-.708z"></path>
+                            </svg>
                         </a>
-                        {% endif %}
-                    </li>
-                    {% endfor %}
-                    {% if can_delete %}
+                    </div>
+                    <ul class="list-group list-group-flush">
+                        {% for task in col.tasks %}
 
-                    <li class="list-group-item">
-                        <div class="card w-50">
-                            <div class="card-body">
-                                <h5 class="card-title">Добавить новую задачу</h5>
-                                <p class="card-text">Здесь вы можете добавить новую задачу в вашу доску</p>
-                                <form action="{{ url_for('add_task', board_id=board.id, column_id=col.id) }}"
-                                      method="post">
-                                    <label for="text">Задача</label>
-                                    <input type="text" name="text" id="text">
-                                    <!--                                    <label for="tag">Тэг</label>-->
-                                    <!--                                    <input type="text" name="tag" id="tag">-->
-                                    <!--                                    <form>-->
-                                    <!--                                        <div class="form-group">-->
-                                    <!--                                            <label for="inputDate">Введите дату:</label>-->
-                                    <!--                                            <input type="date" class="form-control" id="inputDate" name="inputDate">-->
-                                    <!--                                        </div>-->
-
-                                    <button type="submit" class="btn btn-primary">Создать</button>
-                                </form>
-                            </div>
-                        </div>
-                    </li>
-
-                    {% endif %}
-                </ul>
-            </div>
-        </li>
-        {% endfor %}
-        <li class="list-group-item">
-            {% if can_delete %}
-            <div class="card-body">
-                <h5 class="card-title">Добавить новую колонку</h5>
-                <p class="card-text">Здесь вы можете добавить новую колонку в вашу доску</p>
-                <form action="{{ url_for('add_column', id=board.id) }}" method="post">
-                    <label for="name">Название</label>
-                    <input type="text" name="name" id="name">
-                    <label for="color_id">Цвет</label>
-                    <select class="form-control form-control-sm" id="color_id" name="color_id">
-                        {% for color in colors %}
-                        <option value={{color.id}}>{{color.value}}</option>
+                        <li class="list-group-item d-flex justify-content-between align-items-center rounded border border-{{ col.color.value }}">
+                            <a href="{{url_for('edit_task', id=task.id)}}">{{ task.text }}</a>
+                            {% if can_delete %}
+                            <a href="{{ url_for('delete_task', task_id=task.id) }}">
+                                <button type="button" class="btn-close" aria-label="Close"></button>
+                            </a>
+                            {% endif %}
+                        </li>
                         {% endfor %}
-                    </select>
-                    <input type="submit" class="btn btn-primary" value="Создать">
-                </form>
-            </div>
-            {% endif %}
-        </li>
-    </ul>
+                        {% if can_delete %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center rounded border border-{{ col.color.value }}">
+
+                            <form action="{{ url_for('add_task', board_id=board.id, column_id=col.id) }}"
+                                  method="post">
+
+                                <div class="input-group">
+                                    <label for="text"></label>
+                                    <input type="text"
+                                           class="form-control rounded-left border border-{{ col.color.value }}"
+                                           placeholder="Новая задача"
+                                           id="text"
+                                           name="text">
+                                    <button type="submit" class="btn rounded-right btn-outline-{{ col.color.value }}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                                             fill="currentColor" class="bi bi-plus-circle"
+                                             viewBox="0 0 16 16">
+                                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"></path>
+                                            <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+
+                            </form>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </li>
+                {% endfor %}
+                {% if can_delete %}
+                <li class="list-group-item">
+
+                    <div class="card-body " style="width: 18rem;">
+                        <h5 class="card-title">Добавить новую колонку</h5>
+                        <p class="card-text">Здесь вы можете добавить новую колонку в вашу доску</p>
+                        <form action="{{ url_for('add_column', id=board.id) }}" method="post">
+                            <label for="name">Название</label>
+                            <input type="text" name="name" id="name" class="form-control rounded-left">
+                            <label for="color_id">Цвет</label>
+                            <select class="form-control form-control-sm" id="color_id" name="color_id">
+                                {% for color in colors %}
+                                <option value={{ color.id }}>{{ color.description }}</option>
+                                {% endfor %}
+                            </select>
+                            <input type="submit" class="btn btn-primary" value="Создать">
+                        </form>
+                    </div>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
 </div>
-
-<!--{% if can_delete %}-->
-<!--<div class="card w-50">-->
-<!--    <div class="card-body">-->
-<!--        <h5 class="card-title">Добавить новую задачу</h5>-->
-<!--        <p class="card-text">Здесь вы можете добавить новую задачу в вашу доску</p>-->
-<!--        <form action="{{ url_for('view_board', id=board.id) }}" method="post">-->
-<!--            <label for="text">Задача</label>-->
-<!--            <input type="text" name="text" id="text">-->
-<!--            <input type="submit" class="btn btn-primary" value="Создать">-->
-<!--        </form>-->
-<!--    </div>-->
-<!--</div>-->
-<!--{% endif %}-->
-
 
 {% endblock %}

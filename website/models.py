@@ -69,10 +69,10 @@ class BColumn(Base):
 class Color(Base):
     __tablename__ = "color"
     id = Column(Integer, nullable=False, unique=True, primary_key=True, autoincrement=True)
-    value = Column(String(32))
+    value = Column(String(20))
+    description = Column(String(15))
 
     b_column = relationship("BColumn", back_populates="color")
-    tag = relationship("Tag", back_populates="color")
 
     def __repr__(self):
         return f"<Color({self.id},{self.value})>"
@@ -87,12 +87,11 @@ class Task(Base):
     column_id = Column(Integer, ForeignKey("b_column.id", ondelete="CASCADE"), nullable=False)
     board_id = Column(Integer, ForeignKey("board.id", ondelete="CASCADE"), nullable=False)
     date_deadline = Column(Date(), default=None)
-    tag_id = Column(Integer, ForeignKey("tag.id", ondelete="CASCADE"), default=None)
 
     author = relationship("User", back_populates="tasks")
     b_column = relationship("BColumn", back_populates="tasks")
     board = relationship("Board", back_populates="tasks")
-    tag = relationship("Tag", back_populates="tasks")
+    tag = relationship("Tag", back_populates="task")
 
     def __repr__(self):
         return f"<Task({self.id},{self.text})>"
@@ -101,11 +100,10 @@ class Task(Base):
 class Tag(Base):
     __tablename__ = "tag"
     id = Column(Integer, nullable=False, unique=True, primary_key=True, autoincrement=True)
-    text = Column(String(64))
-    color_id = Column(Integer, ForeignKey("color.id", ondelete="CASCADE"), nullable=False)
+    text = Column(String(15))
+    task_id = Column(Integer, ForeignKey("task.id", ondelete="CASCADE"), default=None)
 
-    color = relationship("Color", back_populates="tag")
-    tasks = relationship("Task", back_populates="tag")
+    task = relationship("Task", back_populates="tag")
 
     def __repr__(self):
         return f"<Tag({self.id},{self.text})>"

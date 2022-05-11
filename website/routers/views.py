@@ -6,8 +6,8 @@ from starlette.responses import RedirectResponse
 from . import templates, flash
 from .auth import manager
 from ..database import get_db
-from ..models import Board, User, Theme, Task, BColumn, Color
-from ..schemas import BoardForm, ColumnForm, TaskForm
+from ..models import Board, User, Theme, Task, BColumn, Color, Tag
+from ..schemas import BoardForm, ColumnForm, TaskForm, TaskEditForm
 
 router = APIRouter(tags=["views"])
 
@@ -57,15 +57,6 @@ def view_board(id: int, request: Request, current_user=Depends(manager), db=Depe
                                       {"request": request, "board": board, "can_delete": can_delete, "colors": colors})
 
 
-@router.post("/board/{id}")
-def view_board(id: int, request: Request, current_user=Depends(manager), db=Depends(get_db)):
-    if current_user.id == board.author:
-        text = request.form.get("text")
-        new_task = Task(text=text, author=current_user.id, board_id=id)
-        db.add(new_task)
-        db.commit()
-
-
 @router.post("/add_column/{id}")
 def add_column(id: int, request: Request, current_user=Depends(manager), db=Depends(get_db),
                column: ColumnForm = Depends(ColumnForm)):
@@ -75,10 +66,55 @@ def add_column(id: int, request: Request, current_user=Depends(manager), db=Depe
     return RedirectResponse(url=f"/board/{id}", status_code=status.HTTP_302_FOUND)
 
 
+@router.get("/delete_column/{column_id}")
+def delete_column(column_id: int, request: Request, current_user=Depends(manager), db=Depends(get_db)):
+    column = db.query(BColumn).filter(BColumn.id == column_id).first()
+    board_id = column.board_id
+    if current_user.id != column.board.author_id:
+        return templates.TemplateResponse("no_board.html", {"request": request})
+    db.delete(column)
+    db.commit()
+    return RedirectResponse(url=f"/board/{board_id}", status_code=status.HTTP_302_FOUND)
+
+
 @router.post("/add_task/{board_id}/{column_id}")
 def add_task(board_id: int, column_id: int, request: Request, current_user=Depends(manager), db=Depends(get_db),
-               task: TaskForm = Depends(TaskForm)):
-    new_task = Task(name=task.name, board_id=board_id, column_id=column_id)
+             task: TaskForm = Depends(TaskForm)):
+    new_task = Task(text=task.text, author_id=current_user.id, board_id=board_id, column_id=column_id)
     db.add(new_task)
     db.commit()
-    return RedirectResponse(url=f"/board/{id}", status_code=status.HTTP_302_FOUND)
+    return RedirectResponse(url=f"/board/{board_id}", status_code=status.HTTP_302_FOUND)
+
+
+@router.get("/delete_task/{task_id}")
+def delete_task(task_id: int, request: Request, current_user=Depends(manager), db=Depends(get_db)):
+    task = db.query(Task).filter(Task.id == task_id).first()
+    board_id = task.board_id
+    if current_user.id != task.board.author_id:
+        return templates.TemplateResponse("no_board.html", {"request": request})
+    db.delete(task)
+    db.commit()
+    return RedirectResponse(url=f"/board/{board_id}", status_code=status.HTTP_302_FOUND)
+
+
+@router.get("/edit_task/{task_id}")
+def edit_task(task_id: int, request: Request, current_user=Depends(manager), db=Depends(get_db)):
+    task = db.query(Task).filter(Task.id == task_id).first()
+    board_id = task.board_id
+    if current_user.id != task.board.author_id:
+        return templates.TemplateResponse("no_board.html", {"request": request})
+    return templates.TemplateResponse("edit_task.html", {"request": request, "task": task})
+
+
+@router.post("/edit_task/{id}")
+def edit_task(id: int, request: Request, current_user=Depends(manager), db=Depends(get_db),
+              task_edited=Depends(TaskEditForm)):
+    task = db.query(Task).filter(Task.id == id).first()
+    task.date_deadline = task_edited.deadline
+    new_tag = Tag(task_id=id, text=task_edited.tag)
+    task.text = task_edited.text
+    # TODO: исправить добавление тэгов
+
+    db.add(new_tag)
+    db.commit()
+    return templates.TemplateResponse("edit_task.html", {"request": request, "task": task})

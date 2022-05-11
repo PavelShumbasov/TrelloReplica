@@ -10,17 +10,32 @@
           integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
     {% block head %}
     {% endblock %}
-<link rel="shortcut icon" href="static/icon/mainicon.png" type="image/png">
-</head>
-<body>
+    <link rel="shortcut icon" href="static/icon/mainicon.png" type="image/png">
 
-{#<ul class="nav">
-    {% for page in menu %}
-        <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href={{ url_for(page["url"]) }}>{{ page["name"] }}</a>
-        </li>
-    {% endfor %}
-</ul>#}
+</head>
+<body style="margin-right: 3%; margin-left: 3%; ">
+
+<ul class="nav">
+    <li class="nav-item">
+        <a class="nav-link active" aria-current="page" href="/"> Главная </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link active" aria-current="page" href="/my_boards"> Мои доски </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link active" aria-current="page" href="/add_board"> Создать доску </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link active" aria-current="page" href="/edit"> Редактировать аккаунт </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link active" aria-current="page" href="/logout"> Выйти из аккаунта </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link active" aria-current="page" href="/sign_up"> Регистрация </a>
+    </li>
+
+</ul>
 
 
 <div class="card text-center" style="width: 100%;">
@@ -29,7 +44,7 @@
     </div>
 </div>
 
-
+<hr>
 {% block content %}
 {% endblock %}
 

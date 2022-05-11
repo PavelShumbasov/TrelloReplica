@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block title %}Редактирование задания{% endblock %}
+{% block header %}
+<h1>Редактирование задания</h1>
+{% endblock %}
+
+{% block content %}
+{% for message in get_flashed_messages(request) %}
+<div class="{{ message.category }}" role="alert">{{ message.message }}</div>
+{% endfor %}
+
+<div class="card border-primary mb-3" style="width: 22rem;">
+    <div class="card-body">
+        <h5>Автор: {{task.author.username}}</h5>
+        <h5>Дата создания: {{task.date_created}}</h5>
+    </div>
+</div>
+
+<div class="card border-primary mb-3" style="width: 22rem;">
+    <div class="card-body">
+        <form action="{{ url_for('edit_task', id=task.id) }}" role="form" class="form-horizontal" method="POST">
+            <div class="mb-3">
+                <label for="text" class="form-label">Задание</label>
+                <input type="text" class="form-control" id="text" name="text" value={{task.text}}>
+            </div>
+            <div class="mb-3">
+                <label for="tag" class="form-label">Тэг</label>
+                <input type="text" class="form-control" id="tag" name="tag" placeholder="Тэг" value={{task.tag.text}}>
+
+            </div>
+
+            <div class="mb-3">
+                <div class="form-group">
+                    <label for="deadline">Дедлайн:</label>
+                    <input type="date" class="form-control" id="deadline" name="deadline" value={{task.date_deadline}}>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Отредактировать</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

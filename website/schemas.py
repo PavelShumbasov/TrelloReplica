@@ -36,3 +36,10 @@ class TaskForm(BaseModel):
 class ColumnForm(BaseModel):
     name: str
     color_id: int
+
+
+@get_form_body
+class TaskEditForm(BaseModel):
+    text: str
+    tag: str
+    deadline: date
