@@ -14,7 +14,7 @@ class User(Base):
     boards = relationship("Board", back_populates="author")
     tasks = relationship("Task", back_populates="author")
     tg_user = relationship("TgUser", back_populates="user")
-    # collaborators = relationship("Collaborator", back_populates="user")
+    collaborators = relationship("Collaborator", back_populates="user", foreign_keys="Collaborator.user_id")
 
     def __repr__(self):  # Перегрузка текстового представления
         return f"<User({self.id},{self.username})>"
@@ -31,9 +31,9 @@ class Board(Base):
 
     author = relationship("User", back_populates="boards")
     theme = relationship("Theme", back_populates="boards")
-    b_columns = relationship("BColumn", back_populates="board")
-    tasks = relationship("Task", back_populates="board")
-    # collaborators = relationship("Collaborator", back_populates="board")
+    b_columns = relationship("BColumn", back_populates="board", cascade="all, delete")
+    tasks = relationship("Task", back_populates="board", cascade="all, delete")
+    collaborators = relationship("Collaborator", back_populates="board", foreign_keys="Collaborator.board_id")
 
     def __repr__(self):
         return f"<Board({self.id},{self.name})>"
@@ -60,7 +60,7 @@ class BColumn(Base):
 
     board = relationship("Board", back_populates="b_columns")
     color = relationship("Color", back_populates="b_column")
-    tasks = relationship("Task", back_populates="b_column")
+    tasks = relationship("Task", back_populates="b_column", cascade="all, delete")
 
     def __repr__(self):
         return f"<BColumn({self.id},{self.name})>"
@@ -91,7 +91,7 @@ class Task(Base):
     author = relationship("User", back_populates="tasks")
     b_column = relationship("BColumn", back_populates="tasks")
     board = relationship("Board", back_populates="tasks")
-    tag = relationship("Tag", back_populates="task")
+    tag = relationship("Tag", back_populates="task", cascade="all, delete")
 
     def __repr__(self):
         return f"<Task({self.id},{self.text})>"
@@ -100,7 +100,7 @@ class Task(Base):
 class Tag(Base):
     __tablename__ = "tag"
     id = Column(Integer, nullable=False, unique=True, primary_key=True, autoincrement=True)
-    text = Column(String(15))
+    text = Column(String(15), default="Нет тэга")
     task_id = Column(Integer, ForeignKey("task.id", ondelete="CASCADE"), default=None)
 
     task = relationship("Task", back_populates="tag")
@@ -126,10 +126,10 @@ class Collaborator(Base):
     __tablename__ = "collaborator"
     id = Column(Integer, nullable=False, unique=True, primary_key=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
-    board_id = Column(Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
+    board_id = Column(Integer, ForeignKey("board.id", ondelete="CASCADE"), nullable=False)
 
-    # user = relationship("User", back_populates="collaborators", foreign_keys=[user_id])
-    # board = relationship("Board", back_populates="collaborators", foreign_keys=[board_id])
+    user = relationship("User", back_populates="collaborators", foreign_keys=[user_id])
+    board = relationship("Board", back_populates="collaborators", foreign_keys=[board_id])
 
     def __repr__(self):
         return f"<Collaborator({self.user_id},{self.board_id})>"

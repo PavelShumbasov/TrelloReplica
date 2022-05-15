@@ -33,19 +33,27 @@
             <ul class="list-group list-group-horizontal">
                 {% for col in board.b_columns %}
                 <li class="list-group-item rounded border border-{{ col.color.value }}" style="width: 20rem;">
-                    <div class="fs-2 mb-3 text-nowrap text-{{ col.color.value }}">{{ col.name }}
-                        <a href="{{url_for('delete_column', column_id=col.id)}}">
+
+                    <div class="fs-2 mb-3 text-wrap text-{{ col.color.value }}"
+                         style="width: 18rem;">{{ col.name }}
+                        {% if can_delete %}
+                        <a href="{{ url_for('delete_column', column_id=col.id) }}">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
                                  class="bi bi-x-square-fill text-{{ col.color.value }}" viewBox="0 0 16 16">
                                 <path d="M2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2zm3.354 4.646L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 1 1 .708-.708z"></path>
                             </svg>
                         </a>
+                        {% endif %}
                     </div>
+
                     <ul class="list-group list-group-flush">
                         {% for task in col.tasks %}
 
                         <li class="list-group-item d-flex justify-content-between align-items-center rounded border border-{{ col.color.value }}">
-                            <a href="{{url_for('edit_task', id=task.id)}}">{{ task.text }}</a>
+                            <a href="{{ url_for('edit_task', id=task.id) }}"
+                               class="text-decoration-none text-reset">
+                                <div class="text-wrap" style="width: 15rem;">{{ task.text }}</div>
+                            </a>
                             {% if can_delete %}
                             <a href="{{ url_for('delete_task', task_id=task.id) }}">
                                 <button type="button" class="btn-close" aria-label="Close"></button>
@@ -66,7 +74,8 @@
                                            placeholder="Новая задача"
                                            id="text"
                                            name="text">
-                                    <button type="submit" class="btn rounded-right btn-outline-{{ col.color.value }}">
+                                    <button type="submit"
+                                            class="btn rounded-right btn-outline-{{ col.color.value }}">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
                                              fill="currentColor" class="bi bi-plus-circle"
                                              viewBox="0 0 16 16">
@@ -106,5 +115,9 @@
         </div>
     </div>
 </div>
-
+{% if user.id == board.author.id %}
+<a href="{{url_for('add_collaborator', board_id=board.id)}}">
+    <input type="submit" class="btn btn-primary" value="Добавить участника">
+</a>
+{% endif %}
 {% endblock %}

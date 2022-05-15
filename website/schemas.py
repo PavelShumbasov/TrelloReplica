@@ -43,3 +43,8 @@ class TaskEditForm(BaseModel):
     text: str
     tag: str
     deadline: date
+
+
+@get_form_body
+class CollaboratorForm(BaseModel):
+    username: str

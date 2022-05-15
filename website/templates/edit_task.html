@@ -21,11 +21,11 @@
         <form action="{{ url_for('edit_task', id=task.id) }}" role="form" class="form-horizontal" method="POST">
             <div class="mb-3">
                 <label for="text" class="form-label">Задание</label>
-                <input type="text" class="form-control" id="text" name="text" value={{task.text}}>
+                <input type="text" class="form-control" id="text" name="text" value="{{task.text}}">
             </div>
             <div class="mb-3">
                 <label for="tag" class="form-label">Тэг</label>
-                <input type="text" class="form-control" id="tag" name="tag" placeholder="Тэг" value={{task.tag.text}}>
+                <input type="text" class="form-control" id="tag" name="tag" placeholder="Тэг" value="{{task.tag.text}}">
 
             </div>
 

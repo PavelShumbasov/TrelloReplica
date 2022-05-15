@@ -6,21 +6,24 @@ from starlette.responses import RedirectResponse
 from . import templates, flash
 from .auth import manager
 from ..database import get_db
-from ..models import Board, User, Theme, Task, BColumn, Color, Tag
-from ..schemas import BoardForm, ColumnForm, TaskForm, TaskEditForm
+from ..models import Board, User, Theme, Task, BColumn, Color, Tag, Collaborator
+from ..schemas import BoardForm, ColumnForm, TaskForm, TaskEditForm, CollaboratorForm
 
 router = APIRouter(tags=["views"])
 
 
 @router.get("/")
 def home(request: Request, user=Depends(manager), db=Depends(get_db)):
-    boards = db.query(Board).filter(Board.is_private == False).all()
+    boards = db.query(Board).filter(Board.is_private is False).all()
     return templates.TemplateResponse("home.html", {"request": request, "boards": boards})
 
 
 @router.get("/my_boards")
 def my_boards(request: Request, user=Depends(manager), db=Depends(get_db)):
-    boards = db.query(Board).filter(Board.author_id == User.id).all()
+    boards = db.query(Board).filter(Board.author_id == user.id).all()
+    collaborators = db.query(Collaborator).filter(Collaborator.user_id == user.id).all()
+    for collab in collaborators:
+        boards.append(collab.board)
     return templates.TemplateResponse("my_boards.html", {"request": request, "boards": boards})
 
 
@@ -44,9 +47,10 @@ def view_board(id: int, request: Request, current_user=Depends(manager), db=Depe
     board = db.query(Board).filter(Board.id == id).first()
     can_delete = False
     if board:
-        can_delete = board.author.id == current_user.id
+        can_delete = board.author.id == current_user.id or any(
+            [current_user.id == collab.user_id for collab in board.collaborators])
 
-    if not board or (board.author.id != current_user.id and board.is_private):
+    if not board or (not can_delete and board.is_private):
         return templates.TemplateResponse("no_board.html",
                                           {"request": request})
     # columns = BColumn.query.filter_by(board_id=id).all()
@@ -54,7 +58,8 @@ def view_board(id: int, request: Request, current_user=Depends(manager), db=Depe
     colors = db.query(Color).all()
     print(board.b_columns)
     return templates.TemplateResponse("view_board.html",
-                                      {"request": request, "board": board, "can_delete": can_delete, "colors": colors})
+                                      {"request": request, "board": board, "can_delete": can_delete, "colors": colors,
+                                       "user": current_user})
 
 
 @router.post("/add_column/{id}")
@@ -70,7 +75,10 @@ def add_column(id: int, request: Request, current_user=Depends(manager), db=Depe
 def delete_column(column_id: int, request: Request, current_user=Depends(manager), db=Depends(get_db)):
     column = db.query(BColumn).filter(BColumn.id == column_id).first()
     board_id = column.board_id
-    if current_user.id != column.board.author_id:
+    can_delete = column.board.author.id == current_user.id or any(
+        [current_user.id == collab.user_id for collab in column.board.collaborators])
+
+    if not can_delete:
         return templates.TemplateResponse("no_board.html", {"request": request})
     db.delete(column)
     db.commit()
@@ -90,7 +98,9 @@ def add_task(board_id: int, column_id: int, request: Request, current_user=Depen
 def delete_task(task_id: int, request: Request, current_user=Depends(manager), db=Depends(get_db)):
     task = db.query(Task).filter(Task.id == task_id).first()
     board_id = task.board_id
-    if current_user.id != task.board.author_id:
+    can_delete = task.board.author.id == current_user.id or any(
+        [current_user.id == collab.user_id for collab in task.board.collaborators])
+    if not can_delete:
         return templates.TemplateResponse("no_board.html", {"request": request})
     db.delete(task)
     db.commit()
@@ -101,7 +111,9 @@ def delete_task(task_id: int, request: Request, current_user=Depends(manager), d
 def edit_task(task_id: int, request: Request, current_user=Depends(manager), db=Depends(get_db)):
     task = db.query(Task).filter(Task.id == task_id).first()
     board_id = task.board_id
-    if current_user.id != task.board.author_id:
+    can_delete = task.board.author.id == current_user.id or any(
+        [current_user.id == collab.user_id for collab in task.board.collaborators])
+    if not can_delete:
         return templates.TemplateResponse("no_board.html", {"request": request})
     return templates.TemplateResponse("edit_task.html", {"request": request, "task": task})
 
@@ -110,11 +122,60 @@ def edit_task(task_id: int, request: Request, current_user=Depends(manager), db=
 def edit_task(id: int, request: Request, current_user=Depends(manager), db=Depends(get_db),
               task_edited=Depends(TaskEditForm)):
     task = db.query(Task).filter(Task.id == id).first()
-    task.date_deadline = task_edited.deadline
-    new_tag = Tag(task_id=id, text=task_edited.tag)
-    task.text = task_edited.text
-    # TODO: исправить добавление тэгов
+    tag = db.query(Tag).filter(Tag.task_id == task.id).first()
+    if tag:
+        tag.text = task_edited.tag
+        print(task.tag)
+    else:
+        new_tag = Tag(task_id=id, text=task_edited.tag)
+        db.add(new_tag)
 
-    db.add(new_tag)
+    task.date_deadline = task_edited.deadline
+    task.text = task_edited.text
+
     db.commit()
     return templates.TemplateResponse("edit_task.html", {"request": request, "task": task})
+
+
+@router.get("/add_collaborator/{board_id}")
+def add_collaborator(board_id: int, request: Request, current_user=Depends(manager), db=Depends(get_db)):
+    board = db.query(Board).filter(Board.id == board_id).first()
+    if current_user.id != board.author_id:
+        return templates.TemplateResponse("no_board.html", {"request": request})
+    return templates.TemplateResponse("add_collaborator.html", {"request": request, "board": board})
+
+
+@router.post("/add_collaborator/{board_id}")
+def add_collaborator(board_id: int, request: Request, current_user=Depends(manager), db=Depends(get_db),
+                     collaborator=Depends(CollaboratorForm)):
+    board = db.query(Board).filter(Board.id == board_id).first()
+    if current_user.id != board.author_id:
+        return templates.TemplateResponse("no_board.html", {"request": request})
+    user = db.query(User).filter(User.username == collaborator.username).first()
+    if not user:
+        flash(request, "Такого пользователя нет", category="alert alert-danger")
+    elif any([user.id == collab.user_id for collab in board.collaborators]):
+        flash(request, "Этот пользователь уже является участником", category="alert alert-danger")
+    else:
+        flash(request, "Пользователь успешно добавлен", category="alert alert-success")
+        new_collaborator = Collaborator(board_id=board.id, user_id=user.id)
+        db.add(new_collaborator)
+        db.commit()
+    return templates.TemplateResponse("add_collaborator.html", {"request": request, "board": board})
+
+
+@router.get("/delete_collaborator/{board_id}/{collaborator_id}")
+def delete_collaborator(board_id: int, collaborator_id: int, request: Request, current_user=Depends(manager),
+                        db=Depends(get_db)):
+    board = db.query(Board).filter(Board.id == board_id).first()
+    if current_user.id != board.author_id:
+        return templates.TemplateResponse("no_board.html", {"request": request})
+    collaborator = db.query(Collaborator).filter(
+        Collaborator.user_id == collaborator_id and Collaborator.board_id == board_id).first()
+    if not collaborator:
+        flash(request, "Такого пользователя нет", category="alert alert-danger")
+    else:
+        flash(request, "Пользователь успешно удален", category="alert alert-success")
+        db.delete(collaborator)
+        db.commit()
+    return templates.TemplateResponse("add_collaborator.html", {"request": request, "board": board})
