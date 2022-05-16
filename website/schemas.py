@@ -41,8 +41,8 @@ class ColumnForm(BaseModel):
 @get_form_body
 class TaskEditForm(BaseModel):
     text: str
-    tag: str
-    deadline: date
+    tag: Optional[str] = None
+    deadline: Optional[date] = None
 
 
 @get_form_body

@@ -1,3 +1,5 @@
+import json
+
 from fastapi import APIRouter, Depends
 from starlette import status
 from starlette.requests import Request
@@ -14,7 +16,9 @@ router = APIRouter(tags=["views"])
 
 @router.get("/")
 def home(request: Request, user=Depends(manager), db=Depends(get_db)):
-    boards = db.query(Board).filter(Board.is_private is False).all()
+    boards = db.query(Board).filter(
+        Board.is_private is False or (Board.is_private is True and Board.author_id == user.id)).all()
+    print(boards)
     return templates.TemplateResponse("home.html", {"request": request, "boards": boards})
 
 
@@ -179,3 +183,16 @@ def delete_collaborator(board_id: int, collaborator_id: int, request: Request, c
         db.delete(collaborator)
         db.commit()
     return templates.TemplateResponse("add_collaborator.html", {"request": request, "board": board})
+
+
+@router.post("/find_board")
+async def find_board(request: Request, db=Depends(get_db), current_user=Depends(manager)):
+    name = (await request.form()).get('name')
+    board = db.query(Board).filter(
+        Board.name == name and (Board.is_private is True or Board.author_id == current_user.id)).first()
+    if board:
+        answer = {"result": '<a href=' + f'/board/{board.id}' + '> Найденная доска<a>'}
+    else:
+        answer = {"result": "Такой доски нет"}
+
+    return json.dumps(answer)

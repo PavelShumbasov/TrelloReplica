@@ -119,5 +119,8 @@
 <a href="{{url_for('add_collaborator', board_id=board.id)}}">
     <input type="submit" class="btn btn-primary" value="Добавить участника">
 </a>
+<a href="{{url_for('import_board', board_id=board.id)}}">
+    <input type="submit" class="btn btn-primary" value="Импортировать данные">
+</a>
 {% endif %}
 {% endblock %}

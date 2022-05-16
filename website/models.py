@@ -91,7 +91,7 @@ class Task(Base):
     author = relationship("User", back_populates="tasks")
     b_column = relationship("BColumn", back_populates="tasks")
     board = relationship("Board", back_populates="tasks")
-    tag = relationship("Tag", back_populates="task", cascade="all, delete")
+    tag = relationship("Tag", back_populates="task", cascade="all, delete", uselist=False)
 
     def __repr__(self):
         return f"<Task({self.id},{self.text})>"
@@ -103,7 +103,7 @@ class Tag(Base):
     text = Column(String(15), default="Нет тэга")
     task_id = Column(Integer, ForeignKey("task.id", ondelete="CASCADE"), default=None)
 
-    task = relationship("Task", back_populates="tag")
+    task = relationship("Task", back_populates="tag", uselist=False)
 
     def __repr__(self):
         return f"<Tag({self.id},{self.text})>"
@@ -116,7 +116,7 @@ class TgUser(Base):
     user_id = Column(Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False, unique=True)
     is_subscribed = Column(Boolean, default=False)
 
-    user = relationship("User", back_populates="tg_user")
+    user = relationship("User", back_populates="tg_user", uselist=False)
 
     def __repr__(self):
         return f"<TgUser({self.tg_id},{self.user_id})>"
@@ -128,8 +128,8 @@ class Collaborator(Base):
     user_id = Column(Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
     board_id = Column(Integer, ForeignKey("board.id", ondelete="CASCADE"), nullable=False)
 
-    user = relationship("User", back_populates="collaborators", foreign_keys=[user_id])
-    board = relationship("Board", back_populates="collaborators", foreign_keys=[board_id])
+    user = relationship("User", back_populates="collaborators", foreign_keys=[user_id], uselist=False)
+    board = relationship("Board", back_populates="collaborators", foreign_keys=[board_id], uselist=False)
 
     def __repr__(self):
         return f"<Collaborator({self.user_id},{self.board_id})>"
