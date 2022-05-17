@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}Подписаться на обновления{% endblock %}
+{% block header %}
+<h1>Подписаться на обновления</h1>
+{% endblock %}
+
+{% block content %}
+
+{% for message in get_flashed_messages(request) %}
+<div class="{{ message.category }}" role="alert">{{ message.message }}</div>
+{% endfor %}
+
+<div class="card border-primary mb-3" style="width: 22rem;">
+    <div class="card-body">
+        <form action="{{ url_for('subscribe_on_events') }}" role="form" class="form-horizontal" method="POST">
+            <p>Для того, чтобы подписаться на обновления, введите свой Telegram id, затем перейдите в бота и начните общение с ним</p>
+            <div class="mb-3">
+                <label for="tg_id" class="form-label">Telegram id</label>
+                <input type="text" class="form-control" id="tg_id" name="tg_id" value="{{tg_user.tg_id}}">
+            </div>
+            <button type="submit" class="btn btn-primary">Подписаться</button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

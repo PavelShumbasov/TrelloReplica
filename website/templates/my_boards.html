@@ -15,15 +15,16 @@
     <div class="card border-primary mb-3" style="max-width: 18rem;">
         <div class="card">
             <div class="card-body">
-                {{ board.name }}
                 <a href="{{ url_for('view_board', id=board.id) }}">
+                {{ board.name }}
+                </a>
+                <a href="{{ url_for('delete_board', id=board.id) }}">
                     <button type="submit" class="btn btn-primary float-end">Удалить</button>
                 </a>
             </div>
         </div>
     </div>
 </a>
-
 
 {% endfor %}
 

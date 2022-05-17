@@ -12,10 +12,11 @@
 <div class="card border-primary mb-3" style="width: 22rem;">
     <div class="card-body">
         <div class="mb-3">
+
             <form action="{{url_for('import_board', board_id=board.id)}}" enctype="multipart/form-data" method="post">
-                <label for="formFile" class="form-label">CSV файл с доской (кодировка - UTF-8)</label>
-                <input class="form-control" type="file" id="formFile" multiple>
-                <button type="submit" class="btn btn-primary">Импортировать</button>
+                <label for="file" class="form-label">CSV файл с доской (кодировка - UTF-8)</label>
+                <input class="form-control" name="file" id="file" type="file" required>
+                <input type="submit" value="Импортировать" class="btn btn-primary">
             </form>
         </div>
     </div>

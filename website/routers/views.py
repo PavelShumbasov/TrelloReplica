@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 
 from fastapi import APIRouter, Depends
 from starlette import status
@@ -10,14 +11,15 @@ from .auth import manager
 from ..database import get_db
 from ..models import Board, User, Theme, Task, BColumn, Color, Tag, Collaborator
 from ..schemas import BoardForm, ColumnForm, TaskForm, TaskEditForm, CollaboratorForm
+from sqlalchemy.sql import and_, or_, not_
 
 router = APIRouter(tags=["views"])
 
 
 @router.get("/")
 def home(request: Request, user=Depends(manager), db=Depends(get_db)):
-    boards = db.query(Board).filter(
-        Board.is_private is False or (Board.is_private is True and Board.author_id == user.id)).all()
+    boards = db.query(Board).where((Board.is_private == False)
+                                   | ((Board.is_private == True) & (Board.author_id == user.id))).all()
     print(boards)
     return templates.TemplateResponse("home.html", {"request": request, "boards": boards})
 
@@ -28,6 +30,7 @@ def my_boards(request: Request, user=Depends(manager), db=Depends(get_db)):
     collaborators = db.query(Collaborator).filter(Collaborator.user_id == user.id).all()
     for collab in collaborators:
         boards.append(collab.board)
+
     return templates.TemplateResponse("my_boards.html", {"request": request, "boards": boards})
 
 
@@ -57,13 +60,28 @@ def view_board(id: int, request: Request, current_user=Depends(manager), db=Depe
     if not board or (not can_delete and board.is_private):
         return templates.TemplateResponse("no_board.html",
                                           {"request": request})
-    # columns = BColumn.query.filter_by(board_id=id).all()
-    # tasks = Task.query.filter_by(board_id=id).all()
+
     colors = db.query(Color).all()
-    print(board.b_columns)
     return templates.TemplateResponse("view_board.html",
                                       {"request": request, "board": board, "can_delete": can_delete, "colors": colors,
                                        "user": current_user})
+
+
+@router.get("/delete_board/{id}")
+def delete_board(id: int, request: Request, current_user=Depends(manager), db=Depends(get_db)):
+    board = db.query(Board).filter(Board.id == id).first()
+    can_delete = False
+    if board:
+        can_delete = board.author.id == current_user.id
+
+    if not board or not can_delete:
+        return templates.TemplateResponse("no_board.html",
+                                          {"request": request})
+
+    db.delete(board)
+    db.commit()
+
+    return RedirectResponse(url=f"/my_boards", status_code=status.HTTP_302_FOUND)
 
 
 @router.post("/add_column/{id}")
@@ -123,19 +141,26 @@ def edit_task(task_id: int, request: Request, current_user=Depends(manager), db=
 
 
 @router.post("/edit_task/{id}")
-def edit_task(id: int, request: Request, current_user=Depends(manager), db=Depends(get_db),
-              task_edited=Depends(TaskEditForm)):
+async def edit_task(id: int, request: Request, current_user=Depends(manager), db=Depends(get_db)):
     task = db.query(Task).filter(Task.id == id).first()
-    tag = db.query(Tag).filter(Tag.task_id == task.id).first()
-    if tag:
-        tag.text = task_edited.tag
-        print(task.tag)
+    text = (await request.form()).get("text")
+    tag_form = (await request.form()).get("tag", "No tag")
+    deadline = (await request.form()).get("deadline")
+    if tag_form != "No tag":
+        tag = db.query(Tag).filter(Tag.task_id == task.id).first()
+        if tag:
+            tag.text = tag_form
+            print(task.tag)
+        else:
+            new_tag = Tag(task_id=id, text=tag_form)
+            db.add(new_tag)
+    if deadline == "":
+        deadline = None
     else:
-        new_tag = Tag(task_id=id, text=task_edited.tag)
-        db.add(new_tag)
+        deadline = datetime.strptime(deadline, "%Y-%m-%d")
+    task.date_deadline = deadline
 
-    task.date_deadline = task_edited.deadline
-    task.text = task_edited.text
+    task.text = text
 
     db.commit()
     return templates.TemplateResponse("edit_task.html", {"request": request, "task": task})
