@@ -19,6 +19,9 @@
                 <input type="submit" value="Импортировать" class="btn btn-primary">
             </form>
         </div>
+        <a href="{{url_for('export_board', board_id=board.id)}}">
+            <input type="submit" value="Экспортировать" class="btn btn-primary">
+        </a>
     </div>
 </div>
 

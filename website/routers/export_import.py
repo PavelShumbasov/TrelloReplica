@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, UploadFile
 from starlette.requests import Request
 from csv import DictReader, DictWriter
 
+from starlette.responses import FileResponse
+
 from . import oauth, templates, flash
 from .auth import manager
 from ..database import get_db
@@ -56,25 +58,21 @@ def import_board(board_id: int, request: Request, user=Depends(manager), db=Depe
 async def export_board(board_id: int, request: Request, user=Depends(manager), db=Depends(get_db)):
     board = db.query(Board).filter(Board.id == board_id).first()
 
-    with open(f"{board.name}.csv", "w", encoding="UTF-8", newline="") as export_file:
+    with open(f"board_to_export.csv", "w", encoding="UTF-8", newline="") as export_file:
         columns = board.b_columns
         headers = [col.name for col in columns]
         writer = DictWriter(export_file, fieldnames=headers)
         writer.writeheader()
         tasks = [col.tasks for col in columns]
-        writer.writerows(zip(tasks[0]))
-        # print(tasks, len(columns))
-        # task_with_cols = [[] for _ in range(len(columns))]
-        # print(task_with_cols)
-        # for i, col in enumerate(columns):
-        #     print(i)
-        #     task_with_cols[i] = []
-        #     for task in tasks[i]:
-        #         task_with_cols[i].append({col.name: task.text})
-        # print(task_with_cols)
-        # zipped_tasks = list(zip(task_with_cols))
-        # print(zipped_tasks)
-        # for row in zipped_tasks:
-        #     row = row[0].update(row[1:])
-        # writer.writerows(zipped_tasks)
-        return "ok"
+        max_len = len(max(tasks, key=lambda x: len(x)))
+        print(max_len)
+
+        for i in range(max_len):
+            row = {}
+            for j, col in enumerate(columns):
+                if len(tasks[j]) > i:
+                    row[col.name] = tasks[j][i].text
+
+            writer.writerow(row)
+
+    return FileResponse("board_to_export.csv", media_type="file/txt", filename=f"{board.name}.csv")

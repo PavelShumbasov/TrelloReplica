@@ -17,7 +17,7 @@ def subscribe_on_events(request: Request, user=Depends(manager), db=Depends(get_
 
 
 @router.post("/subscribe_on_events")
-def subscribe_on_events(request: Request, user=Depends(manager), db=Depends(get_db)):
+async def subscribe_on_events(request: Request, user=Depends(manager), db=Depends(get_db)):
     tg_id = (await request.form()).get("tg_id")
     tg_user = db.query(TgUser).filter(TgUser.user_id == user.id).first()
     if not tg_user:
