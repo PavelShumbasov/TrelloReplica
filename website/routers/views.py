@@ -8,10 +8,11 @@ from starlette.responses import RedirectResponse
 
 from . import templates, flash
 from .auth import manager
+from .bot import task_added_message, task_deleted_message, task_updated_message, collaborator_added_message, \
+    as_collaborator_added_message, collaborator_deleted_message, col_added_message, col_deleted_message
 from ..database import get_db
-from ..models import Board, User, Theme, Task, BColumn, Color, Tag, Collaborator
+from ..models import Board, User, Theme, Task, BColumn, Color, Tag, Collaborator, TgUser
 from ..schemas import BoardForm, ColumnForm, TaskForm, TaskEditForm, CollaboratorForm
-from sqlalchemy.sql import and_, or_, not_
 
 router = APIRouter(tags=["views"])
 
@@ -90,6 +91,13 @@ def add_column(id: int, request: Request, current_user=Depends(manager), db=Depe
     new_column = BColumn(name=column.name, color_id=column.color_id, board_id=id)
     db.add(new_column)
     db.commit()
+
+    collaborators_id = set([collab.user_id for collab in new_column.board.collaborators])
+    collaborators_id.add(current_user.id)
+    tg_users = db.query(TgUser).where(TgUser.user_id.in_(collaborators_id) & TgUser.is_subscribed == True).all()
+    for tg_user in tg_users:
+        col_added_message(tg_user.id, new_column.board.name, new_column.name)
+
     return RedirectResponse(url=f"/board/{id}", status_code=status.HTTP_302_FOUND)
 
 
@@ -104,6 +112,13 @@ def delete_column(column_id: int, request: Request, current_user=Depends(manager
         return templates.TemplateResponse("no_board.html", {"request": request})
     db.delete(column)
     db.commit()
+
+    collaborators_id = set([collab.user_id for collab in column.board.collaborators])
+    collaborators_id.add(current_user.id)
+    tg_users = db.query(TgUser).where(TgUser.user_id.in_(collaborators_id) & TgUser.is_subscribed == True).all()
+    for tg_user in tg_users:
+        col_deleted_message(tg_user.id, column.board.name, column.name)
+
     return RedirectResponse(url=f"/board/{board_id}", status_code=status.HTTP_302_FOUND)
 
 
@@ -113,6 +128,12 @@ def add_task(board_id: int, column_id: int, request: Request, current_user=Depen
     new_task = Task(text=task.text, author_id=current_user.id, board_id=board_id, column_id=column_id)
     db.add(new_task)
     db.commit()
+    collaborators_id = set([collab.user_id for collab in new_task.board.collaborators])
+    collaborators_id.add(current_user.id)
+    tg_users = db.query(TgUser).where(TgUser.user_id.in_(collaborators_id) & TgUser.is_subscribed == True).all()
+    # print(tg_users)
+    for tg_user in tg_users:
+        task_added_message(tg_user.id, new_task.board.name, new_task.b_column.name, new_task.text)
     return RedirectResponse(url=f"/board/{board_id}", status_code=status.HTTP_302_FOUND)
 
 
@@ -124,6 +145,12 @@ def delete_task(task_id: int, request: Request, current_user=Depends(manager), d
         [current_user.id == collab.user_id for collab in task.board.collaborators])
     if not can_delete:
         return templates.TemplateResponse("no_board.html", {"request": request})
+    collaborators_id = set([collab.user_id for collab in task.board.collaborators])
+    collaborators_id.add(current_user.id)
+    tg_users = db.query(TgUser).where(TgUser.user_id.in_(collaborators_id) & TgUser.is_subscribed == True).all()
+
+    for tg_user in tg_users:
+        task_deleted_message(tg_user.id, task.board.name, task.b_column.name)
     db.delete(task)
     db.commit()
     return RedirectResponse(url=f"/board/{board_id}", status_code=status.HTTP_302_FOUND)
@@ -132,9 +159,9 @@ def delete_task(task_id: int, request: Request, current_user=Depends(manager), d
 @router.get("/edit_task/{task_id}")
 def edit_task(task_id: int, request: Request, current_user=Depends(manager), db=Depends(get_db)):
     task = db.query(Task).filter(Task.id == task_id).first()
-    board_id = task.board_id
     can_delete = task.board.author.id == current_user.id or any(
         [current_user.id == collab.user_id for collab in task.board.collaborators])
+
     if not can_delete:
         return templates.TemplateResponse("no_board.html", {"request": request})
     return templates.TemplateResponse("edit_task.html", {"request": request, "task": task})
@@ -162,6 +189,12 @@ async def edit_task(id: int, request: Request, current_user=Depends(manager), db
 
     task.text = text
 
+    collaborators_id = set([collab.user_id for collab in task.board.collaborators])
+    collaborators_id.add(current_user.id)
+    tg_users = db.query(TgUser).where(TgUser.user_id.in_(collaborators_id) & TgUser.is_subscribed == True).all()
+    for tg_user in tg_users:
+        task_updated_message(tg_user.id, task.board.name, task.b_column.name)
+
     db.commit()
     return templates.TemplateResponse("edit_task.html", {"request": request, "task": task})
 
@@ -188,8 +221,16 @@ def add_collaborator(board_id: int, request: Request, current_user=Depends(manag
     else:
         flash(request, "Пользователь успешно добавлен", category="alert alert-success")
         new_collaborator = Collaborator(board_id=board.id, user_id=user.id)
+        tg_user_id = db.query(TgUser).where(TgUser.user_id == new_collaborator.user_id).first().tg_id
+        as_collaborator_added_message(tg_user_id, board.name)
         db.add(new_collaborator)
         db.commit()
+
+    collaborators_id = set([collab.user_id for collab in board.collaborators])
+    collaborators_id.add(current_user.id)
+    tg_users = db.query(TgUser).where(TgUser.user_id.in_(collaborators_id) & TgUser.is_subscribed == True).all()
+    for tg_user in tg_users:
+        collaborator_added_message(tg_user.id, board.name, tg_user.user.username)
     return templates.TemplateResponse("add_collaborator.html", {"request": request, "board": board})
 
 
@@ -205,6 +246,13 @@ def delete_collaborator(board_id: int, collaborator_id: int, request: Request, c
         flash(request, "Такого пользователя нет", category="alert alert-danger")
     else:
         flash(request, "Пользователь успешно удален", category="alert alert-success")
+
+        collaborators_id = set([collab.user_id for collab in board.collaborators])
+        collaborators_id.add(current_user.id)
+        tg_users = db.query(TgUser).where(TgUser.user_id.in_(collaborators_id) & TgUser.is_subscribed == True).all()
+        for tg_user in tg_users:
+            collaborator_deleted_message(tg_user.id, board.name, tg_user.user.username)
+
         db.delete(collaborator)
         db.commit()
     return templates.TemplateResponse("add_collaborator.html", {"request": request, "board": board})

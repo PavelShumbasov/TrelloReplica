@@ -13,13 +13,28 @@
 <div class="card border-primary mb-3" style="width: 22rem;">
     <div class="card-body">
         <form action="{{ url_for('subscribe_on_events') }}" role="form" class="form-horizontal" method="POST">
-            <p>Для того, чтобы подписаться на обновления, введите свой Telegram id, затем перейдите в бота и начните общение с ним</p>
+            <p>Для того, чтобы подписаться на обновления, введите свой Telegram id, затем перейдите в бота и начните
+                общение с ним</p>
             <div class="mb-3">
                 <label for="tg_id" class="form-label">Telegram id</label>
-                <input type="text" class="form-control" id="tg_id" name="tg_id" value="{{tg_user.tg_id}}">
+                <input type="text" class="form-control" id="tg_id" name="tg_id" value="{{tg_user.tg_id}}" required>
             </div>
             <button type="submit" class="btn btn-primary">Подписаться</button>
         </form>
+        <hr>
+        <a href="{{url_for('unsubscribe_from_events')}}">
+            <button class="btn btn-primary">Отписаться</button>
+        </a>
+        <hr>
+        <div class="card border-primary mb-3">
+            <div class="card-body">
+                {% if is_subscribed %}
+                <h4>Вы подписаны</h4>
+                {% else %}
+                <h4>Вы не подписаны</h4>
+                {% endif %}
+            </div>
+        </div>
     </div>
 </div>
 
