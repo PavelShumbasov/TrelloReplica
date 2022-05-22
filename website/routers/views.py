@@ -1,15 +1,18 @@
 import json
+from typing import Callable
 from datetime import datetime
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
+from sqlalchemy.orm import Session
 from starlette import status
 from starlette.requests import Request
 from starlette.responses import RedirectResponse
 
-from . import templates, flash
+from . import templates, flash, connection_manager
 from .auth import manager
 from .bot import task_added_message, task_deleted_message, task_updated_message, collaborator_added_message, \
-    as_collaborator_added_message, collaborator_deleted_message, col_added_message, col_deleted_message
+    as_collaborator_added_message, collaborator_deleted_message, col_added_message, col_deleted_message, \
+    board_deleted_message
 from ..database import get_db
 from ..models import Board, User, Theme, Task, BColumn, Color, Tag, Collaborator, TgUser
 from ..schemas import BoardForm, ColumnForm, TaskForm, TaskEditForm, CollaboratorForm
@@ -21,7 +24,6 @@ router = APIRouter(tags=["views"])
 def home(request: Request, user=Depends(manager), db=Depends(get_db)):
     boards = db.query(Board).where((Board.is_private == False)
                                    | ((Board.is_private == True) & (Board.author_id == user.id))).all()
-    print(boards)
     return templates.TemplateResponse("home.html", {"request": request, "boards": boards})
 
 
@@ -51,7 +53,7 @@ async def add_board(request: Request, user=Depends(manager), db=Depends(get_db))
 
 
 @router.get("/board/{id}")
-def view_board(id: int, request: Request, current_user=Depends(manager), db=Depends(get_db)):
+async def view_board(id: int, request: Request, current_user=Depends(manager), db=Depends(get_db)):
     board = db.query(Board).filter(Board.id == id).first()
     can_delete = False
     if board:
@@ -79,6 +81,9 @@ def delete_board(id: int, request: Request, current_user=Depends(manager), db=De
         return templates.TemplateResponse("no_board.html",
                                           {"request": request})
 
+    tg_users = get_participants_tg_id(db, board, current_user)
+    send_notification(tg_users, board_deleted_message, board.name)
+
     db.delete(board)
     db.commit()
 
@@ -92,11 +97,8 @@ def add_column(id: int, request: Request, current_user=Depends(manager), db=Depe
     db.add(new_column)
     db.commit()
 
-    collaborators_id = set([collab.user_id for collab in new_column.board.collaborators])
-    collaborators_id.add(current_user.id)
-    tg_users = db.query(TgUser).where(TgUser.user_id.in_(collaborators_id) & TgUser.is_subscribed == True).all()
-    for tg_user in tg_users:
-        col_added_message(tg_user.tg_id, new_column.board.name, new_column.name)
+    tg_users = get_participants_tg_id(db, new_column.board, current_user)
+    send_notification(tg_users, col_added_message, new_column.board.name, new_column.name)
 
     return RedirectResponse(url=f"/board/{id}", status_code=status.HTTP_302_FOUND)
 
@@ -113,11 +115,8 @@ def delete_column(column_id: int, request: Request, current_user=Depends(manager
     db.delete(column)
     db.commit()
 
-    collaborators_id = set([collab.user_id for collab in column.board.collaborators])
-    collaborators_id.add(current_user.id)
-    tg_users = db.query(TgUser).where(TgUser.user_id.in_(collaborators_id) & TgUser.is_subscribed == True).all()
-    for tg_user in tg_users:
-        col_deleted_message(tg_user.tg_id, column.board.name, column.name)
+    tg_users = get_participants_tg_id(db, column.board, current_user)
+    send_notification(tg_users, col_deleted_message, column.board.name, column.name)
 
     return RedirectResponse(url=f"/board/{board_id}", status_code=status.HTTP_302_FOUND)
 
@@ -128,12 +127,10 @@ def add_task(board_id: int, column_id: int, request: Request, current_user=Depen
     new_task = Task(text=task.text, author_id=current_user.id, board_id=board_id, column_id=column_id)
     db.add(new_task)
     db.commit()
-    collaborators_id = set([collab.user_id for collab in new_task.board.collaborators])
-    collaborators_id.add(current_user.id)
-    tg_users = db.query(TgUser).where(TgUser.user_id.in_(collaborators_id) & TgUser.is_subscribed == True).all()
-    # print(tg_users)
-    for tg_user in tg_users:
-        task_added_message(tg_user.tg_id, new_task.board.name, new_task.b_column.name, new_task.text)
+
+    tg_users = get_participants_tg_id(db, new_task.board, current_user)
+    send_notification(tg_users, task_added_message, new_task.board.name, new_task.b_column.name, new_task.text)
+
     return RedirectResponse(url=f"/board/{board_id}", status_code=status.HTTP_302_FOUND)
 
 
@@ -145,12 +142,10 @@ def delete_task(task_id: int, request: Request, current_user=Depends(manager), d
         [current_user.id == collab.user_id for collab in task.board.collaborators])
     if not can_delete:
         return templates.TemplateResponse("no_board.html", {"request": request})
-    collaborators_id = set([collab.user_id for collab in task.board.collaborators])
-    collaborators_id.add(current_user.id)
-    tg_users = db.query(TgUser).where(TgUser.user_id.in_(collaborators_id) & TgUser.is_subscribed == True).all()
 
-    for tg_user in tg_users:
-        task_deleted_message(tg_user.tg_id, task.board.name, task.b_column.name)
+    tg_users = get_participants_tg_id(db, task.board, current_user)
+    send_notification(tg_users, task_deleted_message, task.board.name, task.b_column.name)
+
     db.delete(task)
     db.commit()
     return RedirectResponse(url=f"/board/{board_id}", status_code=status.HTTP_302_FOUND)
@@ -177,7 +172,6 @@ async def edit_task(id: int, request: Request, current_user=Depends(manager), db
         tag = db.query(Tag).filter(Tag.task_id == task.id).first()
         if tag:
             tag.text = tag_form
-            print(task.tag)
         else:
             new_tag = Tag(task_id=id, text=tag_form)
             db.add(new_tag)
@@ -185,17 +179,16 @@ async def edit_task(id: int, request: Request, current_user=Depends(manager), db
         deadline = None
     else:
         deadline = datetime.strptime(deadline, "%Y-%m-%d")
+
     task.date_deadline = deadline
-
     task.text = text
+    flash(request, "Задача отредактирована", category="alert alert-success")
 
-    collaborators_id = set([collab.user_id for collab in task.board.collaborators])
-    collaborators_id.add(current_user.id)
-    tg_users = db.query(TgUser).where(TgUser.user_id.in_(collaborators_id) & TgUser.is_subscribed == True).all()
-    for tg_user in tg_users:
-        task_updated_message(tg_user.tg_id, task.board.name, task.b_column.name)
+    tg_users = get_participants_tg_id(db, task.board, current_user)
+    send_notification(tg_users, task_updated_message, task.board.name, task.b_column.name)
 
     db.commit()
+
     return templates.TemplateResponse("edit_task.html", {"request": request, "task": task})
 
 
@@ -221,14 +214,14 @@ def add_collaborator(board_id: int, request: Request, current_user=Depends(manag
     else:
         flash(request, "Пользователь успешно добавлен", category="alert alert-success")
         new_collaborator = Collaborator(board_id=board.id, user_id=user.id)
-        tg_user_id = db.query(TgUser).where(TgUser.user_id == new_collaborator.user_id).first().tg_id
-        as_collaborator_added_message(tg_user_id, board.name)
-        db.add(new_collaborator)
-        db.commit()
+        tg_user = db.query(TgUser).where(TgUser.user_id == new_collaborator.user_id).first()
+        if tg_user:
+            tg_user_id = tg_user.tg_id
+            as_collaborator_added_message(tg_user_id, board.name)
+            db.add(new_collaborator)
+            db.commit()
 
-    collaborators_id = set([collab.user_id for collab in board.collaborators])
-    collaborators_id.add(current_user.id)
-    tg_users = db.query(TgUser).where(TgUser.user_id.in_(collaborators_id) & TgUser.is_subscribed == True).all()
+    tg_users = get_participants_tg_id(db, board, current_user)
     for tg_user in tg_users:
         collaborator_added_message(tg_user.tg_id, board.name, tg_user.user.username)
     return templates.TemplateResponse("add_collaborator.html", {"request": request, "board": board})
@@ -247,9 +240,7 @@ def delete_collaborator(board_id: int, collaborator_id: int, request: Request, c
     else:
         flash(request, "Пользователь успешно удален", category="alert alert-success")
 
-        collaborators_id = set([collab.user_id for collab in board.collaborators])
-        collaborators_id.add(current_user.id)
-        tg_users = db.query(TgUser).where(TgUser.user_id.in_(collaborators_id) & TgUser.is_subscribed == True).all()
+        tg_users = get_participants_tg_id(db, board, current_user)
         for tg_user in tg_users:
             collaborator_deleted_message(tg_user.tg_id, board.name, tg_user.user.username)
 
@@ -269,3 +260,35 @@ async def find_board(request: Request, db=Depends(get_db), current_user=Depends(
         answer = {"result": "Такой доски нет"}
 
     return json.dumps(answer)
+
+
+def change_task_column(db: Session, task_id: int, col_id_new: int):
+    task = db.query(Task).filter(Task.id == task_id).first()
+    task.column_id = col_id_new
+    db.commit()
+
+
+def get_participants_tg_id(db: Session, board: Board, current_user: User):
+    collaborators_id = set([collab.user_id for collab in board.collaborators])
+    collaborators_id.add(current_user.id)
+    tg_users = db.query(TgUser).where(TgUser.user_id.in_(collaborators_id) & TgUser.is_subscribed == True).all()
+    return tg_users
+
+
+def send_notification(tg_users: list, send_message: Callable, *params):
+    for tg_user in tg_users:
+        send_message(tg_user.tg_id, *params)
+
+
+@router.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket, db=Depends(get_db)):
+    await connection_manager.connect(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            task, col = data.split()
+            task_id = int(task[task.rfind("-") + 1:])
+            col_id = int(col[col.rfind("-") + 1:])
+            change_task_column(db, task_id, col_id)
+    except WebSocketDisconnect:
+        connection_manager.disconnect(websocket)

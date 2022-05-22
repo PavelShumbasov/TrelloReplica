@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from ..models import User
+from ..models import User, TgUser
 from ..schemas import UserAuth
 from ..database import get_db, DBContext
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -63,6 +63,9 @@ async def sign_up(request: Request, user: UserAuth = Depends(UserAuth), db: Sess
         new_user = User(email=user.email, username=user.username, password=generate_password_hash(
             user.password1, method='sha256'))
         db.add(new_user)
+        db.commit()
+        tg_user = TgUser(user_id=new_user.id, tg_id=-1)
+        db.add(tg_user)
         db.commit()
 
         flash(request, 'User created!', category='alert alert-success')

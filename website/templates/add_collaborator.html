@@ -29,18 +29,45 @@
     </div>
 </div>
 
-<ul class="list-group list-group-flush">
-    {% for collab in board.collaborators %}
-    <li class="list-group-item d-flex justify-content-between align-items-center rounded border">
-        {{collab.user.username}}
-        <a href="{{url_for('delete_collaborator', board_id=board.id, collaborator_id=collab.user_id)}}">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                 class="bi bi-x-square-fill text-primary" viewBox="0 0 16 16">
-                <path d="M2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2zm3.354 4.646L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 1 1 .708-.708z"></path>
-            </svg>
+<style>
+    .btn-circle {
+        width: 38px;
+        height: 38px;
+        border-radius: 19px;
+        text-align: center;
+        padding-left: 0;
+        padding-right: 0;
+        font-size: 16px;
+    }
+</style>
+<div class="card mb-3" style="width: 22rem;">
+    <div class="card-body">
+        <a href="{{url_for('view_board', id=board.id)}}">
+            <button type="submit"
+                    class="btn btn-circle btn-outline-primary"><
+            </button>
         </a>
-    </li>
-    {% endfor %}
-</ul>
+    </div>
+</div>
+
+<div class="card border-primary mb-3" style="width: 22rem;">
+    <div class="card-body">
+        <p>Соучастники доски</p>
+        <ul class="list-group list-group-flush">
+            {% for collab in board.collaborators %}
+            <li class="list-group-item d-flex justify-content-between align-items-center rounded border">
+                {{collab.user.username}}
+                <a href="{{url_for('delete_collaborator', board_id=board.id, collaborator_id=collab.user_id)}}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                         class="bi bi-x-square-fill text-primary" viewBox="0 0 16 16">
+                        <path d="M2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2zm3.354 4.646L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 1 1 .708-.708z"></path>
+                    </svg>
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+
+    </div>
+</div>
 
 {% endblock %}

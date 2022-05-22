@@ -9,6 +9,18 @@
 <div class="{{ message.category }}" role="alert">{{ message.message }}</div>
 {% endfor %}
 
+<style>
+    .btn-circle {
+        width: 38px;
+        height: 38px;
+        border-radius: 19px;
+        text-align: center;
+        padding-left: 0;
+        padding-right: 0;
+        font-size: 16px;
+    }
+</style>
+
 <div class="card border-primary mb-3" style="width: 22rem;">
     <div class="card-body">
         <h5>Автор: {{task.author.username}}</h5>
@@ -39,4 +51,10 @@
         </form>
     </div>
 </div>
+
+<a href="{{url_for('view_board', id=task.board.id)}}">
+    <button type="submit"
+            class="btn btn-circle btn-outline-primary"><
+    </button>
+</a>
 {% endblock %}

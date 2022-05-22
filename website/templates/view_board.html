@@ -16,6 +16,8 @@
         font-size: 16px;
     }
 </style>
+
+
 {% endblock %}
 
 {% block content %}
@@ -32,39 +34,51 @@
         <div class="card" style="width: 20rem;">
             <ul class="list-group list-group-horizontal">
                 {% for col in board.b_columns %}
-                <li class="list-group-item rounded border border-{{ col.color.value }}" style="width: 20rem;">
+                <li class="list-group-item rounded border border-{{ col.color.value }} bcolumn" style="width: 20rem;"
+                    ondragover="onDragOver(event);" ondrop="onDrop(event);">
 
-                    <div class="fs-2 mb-3 text-wrap text-{{ col.color.value }}"
+                    <div class="fs-2 mb-3 text-wrap text-{{ col.color.value }} not-drop"
                          style="width: 18rem;">{{ col.name }}
                         {% if can_delete %}
-                        <a href="{{ url_for('delete_column', column_id=col.id) }}">
+                        <a href="{{ url_for('delete_column', column_id=col.id) }}" class="not-drop">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                                 class="bi bi-x-square-fill text-{{ col.color.value }}" viewBox="0 0 16 16">
-                                <path d="M2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2zm3.354 4.646L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 1 1 .708-.708z"></path>
+                                 class="bi bi-x-square-fill text-{{ col.color.value }} not-drop" viewBox="0 0 16 16">
+                                <path d="M2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2zm3.354 4.646L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 1 1 .708-.708z" class="not-drop"></path>
                             </svg>
                         </a>
                         {% endif %}
                     </div>
 
-                    <ul class="list-group list-group-flush">
-                        {% for task in col.tasks %}
+                    <ul class="list-group list-group-flush tasks__list">
+                        <div class="bcolumn-tasks" id="bcolumn-{{col.id}}">
+                            {% for task in col.tasks %}
 
-                        <li class="list-group-item d-flex justify-content-between align-items-center rounded border border-{{ col.color.value }}">
-                            <a href="{{ url_for('edit_task', id=task.id) }}"
-                               class="text-decoration-none text-reset">
-                                <div class="text-wrap" style="width: 15rem;">{{ task.text }}</div>
-                            </a>
-                            {% if can_delete %}
-                            <a href="{{ url_for('delete_task', task_id=task.id) }}">
-                                <button type="button" class="btn-close" aria-label="Close"></button>
-                            </a>
-                            {% endif %}
-                        </li>
-                        {% endfor %}
+                            <li class="tasks__item list-group-item d-flex justify-content-between align-items-center rounded border border-{{ col.color.value }}"
+                                draggable="true"
+                                ondragstart="onDragStart(event);"
+                                ondragend="onDragEnd(event);"
+                                id="task-{{task.id}}">
+
+                                <div draggable="false" class="text-wrap" style="width: 15rem;cursor: move;"><a
+                                        draggable="false"
+                                        href="{{ url_for('edit_task', id=task.id) }}"
+                                        class="text-decoration-none text-reset">
+                                    {{ task.text }}
+                                </a>
+                                </div>
+
+                                {% if can_delete %}
+                                <a href="{{ url_for('delete_task', task_id=task.id) }}">
+                                    <button type="button" class="btn-close not-drop" aria-label="Close"></button>
+                                </a>
+                                {% endif %}
+                            </li>
+                            {% endfor %}
+                        </div>
                         {% if can_delete %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center rounded border border-{{ col.color.value }}">
+                        <li class="form-for-task list-group-item d-flex justify-content-between align-items-center rounded border border-{{ col.color.value }}">
 
-                            <form action="{{ url_for('add_task', board_id=board.id, column_id=col.id) }}"
+                            <form class="form-for-task" action="{{ url_for('add_task', board_id=board.id, column_id=col.id) }}"
                                   method="post">
 
                                 <div class="input-group">
@@ -79,8 +93,8 @@
                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
                                              fill="currentColor" class="bi bi-plus-circle"
                                              viewBox="0 0 16 16">
-                                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"></path>
-                                            <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"></path>
+                                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" class="not-drop"></path>
+                                            <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" class="not-drop"></path>
                                         </svg>
                                     </button>
                                 </div>
@@ -91,6 +105,8 @@
                     </ul>
                 </li>
                 {% endfor %}
+
+
                 {% if can_delete %}
                 <li class="list-group-item">
 
@@ -123,4 +139,64 @@
     <input type="submit" class="btn btn-primary" value="Импорт/экспорт данных">
 </a>
 {% endif %}
+
+
+<script>
+    function onDragOver(event) {
+        event.preventDefault();
+    }
+
+    function onDragStart(event) {
+        event.target.classList.add(`selected`);
+    }
+
+    function onDragEnd(event) {
+        event.target.classList.remove(`selected`);
+    }
+
+    function onDrop(event) {
+        const activeElement = document.querySelector(`.selected`);
+        const draggableElement = document.getElementById(activeElement.id);
+        console.log(draggableElement.id);
+        let dropzone = event.target;
+
+        if (dropzone.classList.contains('bcolumn')) {
+            dropzone = dropzone.querySelector(`.bcolumn-tasks`);
+        }
+
+        if (dropzone.classList.contains('rounded-right') || dropzone.classList.contains('bi')
+            || dropzone.classList.contains('rounded-right') || dropzone.classList.contains('form-control')
+            || dropzone.classList.contains('input-group') || dropzone.classList.contains('form-for-task')
+            || dropzone.classList.contains('form-for-task') || dropzone.classList.contains('not-drop')) {
+            return;
+        }
+
+        if (dropzone.classList.contains('btn-close')) {
+            dropzone = dropzone.parentElement.parentElement;
+        }
+
+        if (dropzone.classList.contains('text-reset')) {
+            dropzone = dropzone.parentElement;
+        }
+
+        if (dropzone.classList.contains('text-wrap')) {
+            dropzone = dropzone.parentElement;
+        }
+
+        if (dropzone.classList.contains('tasks__item')) {
+            dropzone = dropzone.parentElement;
+        }
+
+        dropzone.appendChild(activeElement);
+
+        sendMessage(event, activeElement.id, dropzone.id);
+    }
+
+    var ws = new WebSocket("ws://localhost:8000/ws");
+
+    function sendMessage(event, task_id, col_id) {
+        ws.send(task_id + " " + col_id);
+        event.preventDefault()
+    }
+</script>
 {% endblock %}
