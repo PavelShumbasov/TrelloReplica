@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}Просмотр тем{% endblock %}
+{% block header %}
+<h1>Просмотр тем</h1>
+{% endblock %}
+
+{% block content %}
+
+{% for message in get_flashed_messages(request) %}
+<div class="{{ message.category }}" role="alert">{{ message.message }}</div>
+{% endfor %}
+
+<div class="row">
+    <div class="card border-secondary mb-3" style="max-width: 30rem;">
+        <div class="card-body text-secondary">
+            <a href="{{ url_for('add_theme') }}">
+                <button type="button" class="btn btn-primary">Добавить тему</button>
+            </a>
+        </div>
+    </div>
+    {% for theme in themes %}
+
+    <div class="card border-primary mb-3" style="max-width: 30rem;">
+        <div class="card-body text-primary">
+            <a href="{{ url_for('edit_theme', theme_id=theme.id) }}">
+                <h5 class="card-title">{{ theme.name }}</h5>
+                <p class="card-text">{{ theme.description }}</p>
+            </a>
+        </div>
+    </div>
+
+    {% endfor %}
+</div>
+
+{% endblock %}

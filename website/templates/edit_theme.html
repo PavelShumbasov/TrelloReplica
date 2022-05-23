@@ -1,0 +1,9 @@
+{% extends 'add_theme.html' %}
+{% block title %}Редактирование темы{% endblock %}
+{% block header %}
+<h1>Редактирование темы</h1>
+{% endblock %}
+
+{% block form_url %} {{ url_for('edit_theme', theme_id=theme.id) }} {% endblock %}
+
+{% block btn_name %} Отредактировать {% endblock %}

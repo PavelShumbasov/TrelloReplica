@@ -33,11 +33,10 @@
         <a class="nav-link active" aria-current="page" href="/subscribe_on_events"> Подписаться на обновления </a>
     </li>
 
-    {% if user %}
     <li class="nav-item">
-        <a class="nav-link active" aria-current="page" href="/logout"> Выйти из аккаунта </a>
+        <a class="nav-link active" aria-current="page" href="/view_themes"> Просмотр тем </a>
     </li>
-    {% else %}
+
     <li class="nav-item">
         <a class="nav-link active" aria-current="page" href="/sign_up"> Регистрация </a>
     </li>
@@ -45,7 +44,10 @@
     <li class="nav-item">
         <a class="nav-link active" aria-current="page" href="/login"> Авторизация </a>
     </li>
-    {% endif %}
+
+    <li class="nav-item">
+        <a class="nav-link active" aria-current="page" href="/logout"> Выйти из аккаунта </a>
+    </li>
 
 </ul>
 

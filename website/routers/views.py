@@ -15,7 +15,7 @@ from .bot import task_added_message, task_deleted_message, task_updated_message,
     board_deleted_message
 from ..database import get_db
 from ..models import Board, User, Theme, Task, BColumn, Color, Tag, Collaborator, TgUser
-from ..schemas import BoardForm, ColumnForm, TaskForm, TaskEditForm, CollaboratorForm
+from ..schemas import BoardForm, ColumnForm, TaskForm, TaskEditForm, CollaboratorForm, ThemeForm
 
 router = APIRouter(tags=["views"])
 
@@ -260,6 +260,60 @@ async def find_board(request: Request, db=Depends(get_db), current_user=Depends(
         answer = {"result": "Такой доски нет"}
 
     return json.dumps(answer)
+
+
+@router.get("/view_themes")
+async def view_themes(request: Request, db=Depends(get_db), current_user=Depends(manager)):
+    themes = db.query(Theme).all()
+    return templates.TemplateResponse("view_themes.html", {"request": request, "themes": themes})
+
+
+@router.get("/add_theme")
+async def add_theme(request: Request, current_user=Depends(manager)):
+    return templates.TemplateResponse("add_theme.html", {"request": request})
+
+
+@router.post("/add_theme")
+async def add_theme(request: Request, theme_form=Depends(ThemeForm), db=Depends(get_db), current_user=Depends(manager)):
+    theme = db.query(Theme).filter(Theme.name == theme_form.name).first()
+
+    if theme:
+        flash(request, "Такая тема уже существует", category="alert alert-danger")
+        return templates.TemplateResponse("add_theme.html", {"request": request})
+
+    flash(request, "Тема успешно создана", category="alert alert-success")
+    new_theme = Theme(name=theme_form.name, description=theme_form.description)
+    db.add(new_theme)
+    db.commit()
+
+    return RedirectResponse(url="/view_themes", status_code=status.HTTP_302_FOUND)
+
+
+@router.get("/edit_theme/{theme_id}")
+async def edit_theme(theme_id: int, request: Request, db=Depends(get_db), current_user=Depends(manager)):
+    theme = db.query(Theme).filter(Theme.id == theme_id).first()
+
+    if not theme:
+        return templates.TemplateResponse("no_board.html", {"request": request})
+
+    return templates.TemplateResponse("edit_theme.html", {"request": request, "theme": theme})
+
+
+@router.post("/edit_theme/{theme_id}")
+async def edit_theme(theme_id: int, request: Request, theme_form=Depends(ThemeForm), db=Depends(get_db),
+                     current_user=Depends(manager)):
+
+    theme = db.query(Theme).filter(Theme.id == theme_id).first()
+
+    if not theme:
+        return templates.TemplateResponse("no_board.html", {"request": request})
+
+    flash(request, "Тема успешно отредактирована", category="alert alert-success")
+    theme.name = theme_form.name
+    theme.description = theme_form.description
+    db.commit()
+
+    return templates.TemplateResponse("edit_theme.html", {"request": request, "theme": theme})
 
 
 def change_task_column(db: Session, task_id: int, col_id_new: int):

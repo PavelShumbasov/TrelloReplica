@@ -48,3 +48,9 @@ class TaskEditForm(BaseModel):
 @get_form_body
 class CollaboratorForm(BaseModel):
     username: str
+
+
+@get_form_body
+class ThemeForm(BaseModel):
+    name: str
+    description: str

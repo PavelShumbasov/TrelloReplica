@@ -43,7 +43,7 @@ class Theme(Base):
     __tablename__ = "theme"
     id = Column(Integer, nullable=False, unique=True, primary_key=True, autoincrement=True)
     name = Column(String(64))
-    info = Column(Text)
+    description = Column(Text)
 
     boards = relationship("Board", back_populates="theme")
 
