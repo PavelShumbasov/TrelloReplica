@@ -64,7 +64,7 @@ def test_sign_existing():
     assert response.status_code == 200
     assert 'Email is invalid' in response.text
 
-    response = client.post("/sign_up", data=TEST_USER2_SIGNUP)
+    response = client.post("/sign_up", allow_redirects=True, data=TEST_USER2_SIGNUP)
     assert response.status_code == 200
     assert 'User created' in response.text
 
@@ -79,8 +79,9 @@ def test_sign_existing():
     assert response.status_code == 200
     assert 'No such username' in response.text
 
-    response = client.post("/login", allow_redirects=False, data={"username": "TestUser2", "password": "LonGPass"})
+    response = client.post("/login", allow_redirects=True, data={"username": "TestUser1", "password": "LonGPass"})
     assert response.status_code == 200
+    debug(response.text)
     assert 'Incorrect password' in response.text
 
     response = client.post("/login", allow_redirects=False, data=TEST_USER2_AUTH)
