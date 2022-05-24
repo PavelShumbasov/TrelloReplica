@@ -195,9 +195,11 @@ async def edit_task(id: int, request: Request, current_user=Depends(manager), db
 @router.get("/add_collaborator/{board_id}")
 def add_collaborator(board_id: int, request: Request, current_user=Depends(manager), db=Depends(get_db)):
     board = db.query(Board).filter(Board.id == board_id).first()
-    if current_user.id != board.author_id:
+    participants_id = [collab.user_id for collab in board.collaborators]
+    participants_id.append(board.author_id)
+    if current_user.id not in participants_id:
         return templates.TemplateResponse("no_board.html", {"request": request})
-    return templates.TemplateResponse("add_collaborator.html", {"request": request, "board": board})
+    return templates.TemplateResponse("add_collaborator.html", {"request": request, "board": board, "user": current_user})
 
 
 @router.post("/add_collaborator/{board_id}")
@@ -221,10 +223,10 @@ def add_collaborator(board_id: int, request: Request, current_user=Depends(manag
             db.add(new_collaborator)
             db.commit()
 
-    tg_users = get_participants_tg_id(db, board, current_user)
-    for tg_user in tg_users:
-        collaborator_added_message(tg_user.tg_id, board.name, tg_user.user.username)
-    return templates.TemplateResponse("add_collaborator.html", {"request": request, "board": board})
+        tg_users = get_participants_tg_id(db, board, current_user)
+        for tg_user in tg_users:
+            collaborator_added_message(tg_user.tg_id, board.name, new_collaborator.user.username)
+    return templates.TemplateResponse("add_collaborator.html", {"request": request, "board": board, "user": current_user})
 
 
 @router.get("/delete_collaborator/{board_id}/{collaborator_id}")
@@ -242,11 +244,11 @@ def delete_collaborator(board_id: int, collaborator_id: int, request: Request, c
 
         tg_users = get_participants_tg_id(db, board, current_user)
         for tg_user in tg_users:
-            collaborator_deleted_message(tg_user.tg_id, board.name, tg_user.user.username)
+            collaborator_deleted_message(tg_user.tg_id, board.name, collaborator.user.username)
 
         db.delete(collaborator)
         db.commit()
-    return templates.TemplateResponse("add_collaborator.html", {"request": request, "board": board})
+    return templates.TemplateResponse("add_collaborator.html", {"request": request, "board": board, "user": current_user})
 
 
 @router.post("/find_board")

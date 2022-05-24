@@ -112,7 +112,7 @@ class Tag(Base):
 class TgUser(Base):
     __tablename__ = "tg_user"
     id = Column(Integer, nullable=False, unique=True, primary_key=True, autoincrement=True)
-    tg_id = Column(Integer, nullable=False, unique=True)
+    tg_id = Column(Integer)
     user_id = Column(Integer, ForeignKey("user.id", ondelete="CASCADE"), nullable=False, unique=True)
     is_subscribed = Column(Boolean, default=False)
 

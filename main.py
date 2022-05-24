@@ -21,4 +21,5 @@ models.Base.metadata.create_all(engine)
 app.mount("/website/static", StaticFiles(directory='website/static'), name="static")
 app.add_exception_handler(NotAuthenticatedException, exc_handler)
 
-uvicorn.run(app)
+if __name__ == "__main__":
+    uvicorn.run(app)

@@ -54,7 +54,9 @@
                             {% for task in col.tasks %}
 
                             <li class="tasks__item list-group-item d-flex justify-content-between align-items-center rounded border border-{{ col.color.value }}"
+                                {% if can_delete %}
                                 draggable="true"
+                                {% endif %}
                                 ondragstart="onDragStart(event);"
                                 ondragend="onDragEnd(event);"
                                 id="task-{{task.id}}">
@@ -131,14 +133,15 @@
         </div>
     </div>
 </div>
-{% if user.id == board.author.id %}
+{% if can_delete %}
 <a href="{{url_for('add_collaborator', board_id=board.id)}}">
-    <input type="submit" class="btn btn-primary" value="Добавить участника">
+    <input type="submit" class="btn btn-primary" value="Участники доски">
 </a>
 <a href="{{url_for('import_board', board_id=board.id)}}">
     <input type="submit" class="btn btn-primary" value="Импорт/экспорт данных">
 </a>
 {% endif %}
+
 
 
 <script>

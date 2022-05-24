@@ -64,7 +64,7 @@ async def sign_up(request: Request, user: UserAuth = Depends(UserAuth), db: Sess
             user.password1, method='sha256'))
         db.add(new_user)
         db.commit()
-        tg_user = TgUser(user_id=new_user.id, tg_id=-1)
+        tg_user = TgUser(user_id=new_user.id, tg_id=None)
         db.add(tg_user)
         db.commit()
 
