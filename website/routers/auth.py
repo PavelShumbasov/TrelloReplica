@@ -12,18 +12,21 @@ from authlib.integrations.starlette_client import OAuthError
 from . import oauth, templates, flash
 from datetime import timedelta
 
-router = APIRouter(tags=["auth"])
+router = APIRouter(tags=["auth"])  # Создаем подприложение
 
 
+# Класс-исключение, которое будет выбрасываться, если пользователь неавторизован
 class NotAuthenticatedException(Exception):
     pass
 
 
+# Обработчик исключения "не авторизованный пользователь"
 def exc_handler(request, exc):
     return RedirectResponse(url='/login')
 
 
-SECRET = "secret-key"
+# Модуль fastapi_login внутри использует json web-tokens
+SECRET = "secret-key"  # Секретный ключ для поддержки сессии между клиентом и сервером
 manager = LoginManager(SECRET, "/login", use_cookie=True)
 manager.cookie_name = "auth_info"
 manager.not_authenticated_exception = NotAuthenticatedException
@@ -31,6 +34,7 @@ manager.not_authenticated_exception = NotAuthenticatedException
 
 @manager.user_loader()
 def load_user(username: str, db: Session = None):
+    """Описание поведения для получения пользователя из бд LoginManager"""
     if db is None:
         with DBContext() as db:
             return db.query(User).filter(User.username == username).first()
@@ -39,11 +43,13 @@ def load_user(username: str, db: Session = None):
 
 @router.get("/sign_up")
 async def sign_up(request: Request):
+    """Отрисовка страницы регистрации"""
     return templates.TemplateResponse("signup.html", {"request": request})
 
 
 @router.post("/sign_up")
 async def sign_up(request: Request, user: UserAuth = Depends(UserAuth), db: Session = Depends(get_db)):
+    """Валидация регистрационных данных и создание пользователя"""
     email_exists = db.query(User).filter(User.email == user.email).first()
     username_exists = db.query(User).filter(User.username == user.username).first()
 
@@ -70,7 +76,8 @@ async def sign_up(request: Request, user: UserAuth = Depends(UserAuth), db: Sess
 
         flash(request, 'User created!', category='alert alert-success')
 
-        access_token = manager.create_access_token(data={"sub": user.username})
+        access_token = manager.create_access_token(
+            data={"sub": user.username})  # Создание токена доступа Логин менеджером для авторизации пользователя
         resp = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
         manager.set_cookie(resp, access_token)
         return resp
@@ -80,15 +87,16 @@ async def sign_up(request: Request, user: UserAuth = Depends(UserAuth), db: Sess
 
 @router.get("/login")
 async def login(request: Request):
+    """Отрисовка шаблона для авторизации"""
     return templates.TemplateResponse("login.html", {"request": request})
 
 
 @router.post("/login")
 async def login(request: Request, data: OAuth2PasswordRequestForm = Depends()):
+    """Авторизация пользователя."""
     username = data.username
     password = data.password
     remember_me = (await request.form()).get("remember_me")
-    print(remember_me)
     user = load_user(username)
 
     token_time = None
@@ -110,7 +118,8 @@ async def login(request: Request, data: OAuth2PasswordRequestForm = Depends()):
 
 
 @router.get('/logout', response_class=HTMLResponse)
-def logout(request: Request, user=Depends(manager)):
+def logout(request: Request, user: User = Depends(manager)):
+    """Выход из аккаунта. Переход на страница login, очистка cookies"""
     resp = RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     manager.set_cookie(resp, "")
     return resp
@@ -118,12 +127,14 @@ def logout(request: Request, user=Depends(manager)):
 
 @router.get('/login_google')
 async def login(request: Request):
+    """OAUTH2 с помощью Google."""
     redirect_uri = request.url_for('auth')
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 
 @router.get('/auth')
 async def auth(request: Request, db: Session = Depends(get_db)):
+    """Авторизация на сайте с помощью токена из гугл. Заменяем гугл-токен на нашу альтернативу"""
     try:
         token = await oauth.google.authorize_access_token(request)
     except OAuthError as error:
@@ -147,13 +158,15 @@ async def auth(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/edit")
-async def edit(request: Request, user=Depends(manager)):
+async def edit(request: Request, user: User = Depends(manager)):
+    """Отрисовка шаблона для редактирования профиля"""
     return templates.TemplateResponse("edit_profile.html", {"request": request, "user": user})
 
 
 @router.post("/edit")
 async def edit(request: Request, user: UserAuth = Depends(UserAuth), db: Session = Depends(get_db),
-               current_user=Depends(manager)):
+               current_user: User = Depends(manager)):
+    """Валидация данных и редактирование аккаунта"""
     email_exists = db.query(User).filter(User.email == user.email).first()
     username_exists = db.query(User).filter(User.username == user.username).first()
 

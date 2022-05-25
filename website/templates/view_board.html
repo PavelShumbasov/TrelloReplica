@@ -145,18 +145,20 @@
 
 
 <script>
+    // функция, которая вызывается при событии "навели взятый объект на другой объект"
     function onDragOver(event) {
         event.preventDefault();
     }
-
+    // функция которая вызывается при событии "начало перетаскивания"
     function onDragStart(event) {
         event.target.classList.add(`selected`);
     }
-
+    // функция которая вызывается при событии "конец перетаскивания"
     function onDragEnd(event) {
         event.target.classList.remove(`selected`);
     }
 
+    // функция которая вызывается при отпускании объекта. Проверка на возможность бросить задачу в объект
     function onDrop(event) {
         const activeElement = document.querySelector(`.selected`);
         const draggableElement = document.getElementById(activeElement.id);
@@ -195,8 +197,10 @@
         sendMessage(event, activeElement.id, dropzone.id);
     }
 
+    // Создание объекта веб-сокета
     var ws = new WebSocket("ws://localhost:8000/ws");
 
+    // Функция для отправки сообщений по веб-сокету
     function sendMessage(event, task_id, col_id) {
         ws.send(task_id + " " + col_id);
         event.preventDefault()

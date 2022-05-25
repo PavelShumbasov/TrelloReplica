@@ -4,6 +4,7 @@ from datetime import date
 from pydantic import BaseModel
 from fastapi import Form
 
+"""Описания pydantic-моделей для получения данных из html-форм"""
 
 # Декоратор переименовывает поля в форме для того, чтобы можно было использовать pydantic-модели в запросе
 def get_form_body(cls):

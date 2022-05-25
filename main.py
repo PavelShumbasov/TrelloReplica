@@ -13,11 +13,17 @@ middleware = [
     Middleware(SessionMiddleware, secret_key='secret-key')
 ]
 app = FastAPI(middleware=middleware)
+
+# Подключение подприложений сайта
 app.include_router(auth.router)
 app.include_router(views.router)
 app.include_router(export_import.router)
 app.include_router(bot.router)
+
+# Создание таблиц в базе данных
 models.Base.metadata.create_all(engine)
+
+# Подключение папки со статикой и обработка исключений неавторизованного пользователя
 app.mount("/website/static", StaticFiles(directory='website/static'), name="static")
 app.add_exception_handler(NotAuthenticatedException, exc_handler)
 

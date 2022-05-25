@@ -1,3 +1,5 @@
+from typing import Callable
+
 from fastapi import APIRouter, Depends
 from starlette.requests import Request
 from requests import post as req_post
@@ -14,6 +16,7 @@ router = APIRouter(tags=["bot"])
 
 @router.get("/subscribe_on_events")
 def subscribe_on_events(request: Request, user=Depends(manager), db=Depends(get_db)):
+    """Отрисовка страницы для подписки на уведомления"""
     tg_user = db.query(TgUser).filter(TgUser.user_id == user.id).first()
     is_subscribed = False
     if tg_user:
@@ -24,6 +27,7 @@ def subscribe_on_events(request: Request, user=Depends(manager), db=Depends(get_
 
 @router.post("/subscribe_on_events")
 async def subscribe_on_events(request: Request, user=Depends(manager), db=Depends(get_db)):
+    """Подписка на уведомления с помощью id для телеграма"""
     tg_id = (await request.form()).get("tg_id")
     tg_user = db.query(TgUser).filter(TgUser.user_id == user.id).first()
     is_subscribed = False
@@ -43,6 +47,7 @@ async def subscribe_on_events(request: Request, user=Depends(manager), db=Depend
 
 @router.get("/unsubscribe_from_events")
 def unsubscribe_from_events(request: Request, user=Depends(manager), db=Depends(get_db)):
+    """Отписываемся от уведомлений бота"""
     tg_user = db.query(TgUser).filter(TgUser.user_id == user.id).first()
     if not tg_user:
         flash(request, "Вы не добавили свой Telegram аккаунт", "alert alert-danger")
@@ -55,7 +60,11 @@ def unsubscribe_from_events(request: Request, user=Depends(manager), db=Depends(
 
 
 def send_messages(text, tg_user_id):
+    """Универсальная функция, которая совершает запрос к телеграм бот API"""
     response = req_post(BASE_URL + "sendMessage", data={"chat_id": tg_user_id, "text": text})
+
+
+"""Описание сообщений для различных событий"""
 
 
 def task_added_message(tg_user_id, board_name, col_name, task_name):
@@ -92,3 +101,9 @@ def as_collaborator_added_message(tg_user_id, board_name):
 
 def board_deleted_message(tg_user_id, board_name):
     send_messages(f"❌ Доска {board_name} была удалена", tg_user_id)
+
+
+def send_notification(tg_users: list, send_message: Callable, *params):
+    """Отправка уведомлений в телеграм боте"""
+    for tg_user in tg_users:
+        send_message(tg_user.tg_id, *params)

@@ -1,19 +1,22 @@
 from fastapi import APIRouter, Depends, UploadFile
+from sqlalchemy.orm import Session
 from starlette.requests import Request
 from csv import DictReader, DictWriter
 
 from starlette.responses import FileResponse
 
-from . import oauth, templates, flash
+from . import templates, flash
 from .auth import manager
 from ..database import get_db
-from ..models import Board, BColumn, Task
+from ..models import Board, BColumn, Task, User
 
 router = APIRouter(tags=["auth"])
 
 
 @router.post("/import/{board_id}")
-async def import_board(board_id: int, request: Request, file: UploadFile, user=Depends(manager), db=Depends(get_db)):
+async def import_board(board_id: int, request: Request, file: UploadFile, user: User = Depends(manager),
+                       db: Session = Depends(get_db)):
+    """Импорт данных в доску из csv файла (Excel)"""
     board = db.query(Board).filter(Board.id == board_id).first()
 
     with open("file_to_import.csv", "w", encoding="UTF-8") as import_file:
@@ -46,7 +49,9 @@ async def import_board(board_id: int, request: Request, file: UploadFile, user=D
 
 
 @router.get("/import/{board_id}")
-def import_board(board_id: int, request: Request, user=Depends(manager), db=Depends(get_db)):
+def import_board(board_id: int, request: Request, user: User = Depends(manager),
+                 db: Session = Depends(get_db)):
+    """Отрисовка страницу для импорта / экспорта доски"""
     board = db.query(Board).filter(Board.id == board_id).first()
     can_edit = board.author.id == user.id or any([user.id == collab.user_id for collab in board.collaborators])
     if not can_edit:
@@ -56,6 +61,7 @@ def import_board(board_id: int, request: Request, user=Depends(manager), db=Depe
 
 @router.get("/export/{board_id}")
 async def export_board(board_id: int, request: Request, user=Depends(manager), db=Depends(get_db)):
+    """Получаем файл с нашей доски в формате csv"""
     board = db.query(Board).filter(Board.id == board_id).first()
 
     with open(f"board_to_export.csv", "w", encoding="UTF-8", newline="") as export_file:

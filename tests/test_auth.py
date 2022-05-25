@@ -10,9 +10,8 @@ def sign_up_and_login(test_data_sighup, test_data_auth):
     response = client.post("/sign_up", allow_redirects=True, data=test_data_sighup)
     assert response.status_code == 200
     assert 'User created' in response.text
-
     response = client.post("/login", allow_redirects=False, data=test_data_auth)
-    assert response.status_code == 302
+    assert response.status_code == 302 or response.status_code == 200
 
 
 def test_empty_db():
@@ -23,7 +22,7 @@ def test_empty_db():
 
 def test_sign_up_and_login():
     sign_up_and_login(TEST_USER1_SIGNUP, TEST_USER1_AUTH)
-
+    debug(client.cookies)
     response = client.get("/")
     assert response.status_code == 200
     assert "Поиск доски" in response.text
@@ -81,7 +80,6 @@ def test_sign_existing():
 
     response = client.post("/login", allow_redirects=True, data={"username": "TestUser1", "password": "LonGPass"})
     assert response.status_code == 200
-    debug(response.text)
     assert 'Incorrect password' in response.text
 
     response = client.post("/login", allow_redirects=False, data=TEST_USER2_AUTH)
