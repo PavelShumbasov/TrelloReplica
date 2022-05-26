@@ -16,7 +16,7 @@
         <div class="card">
             <div class="card-body">
                 <a href="{{ url_for('view_board', id=board.id) }}">
-                {{ board.name }}
+                    {{ board.name }}
                 </a>
                 <a href="{{ url_for('delete_board', id=board.id) }}">
                     <button type="submit" class="btn btn-primary float-end">Удалить</button>

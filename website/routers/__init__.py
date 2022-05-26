@@ -41,6 +41,7 @@ templates.env.globals['get_flashed_messages'] = get_flashed_messages
 
 class ConnectionManager:
     """Объект, который хранит данные о подключенных соединениях и отсоединяет их в случае отключения."""
+
     def __init__(self):
         self.active_connections: List[WebSocket] = []
 

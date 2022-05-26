@@ -38,4 +38,3 @@ TEST_USER2_SIGNUP = {"email": "test1@mail.ru",
 
 TEST_USER2_AUTH = {"username": "TestUser2",
                    "password": "LonGPassword12"}
-

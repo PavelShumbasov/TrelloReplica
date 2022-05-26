@@ -10,7 +10,7 @@
           integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
     {% block head %}
     {% endblock %}
-{#    <link rel="shortcut icon" href='{{url_for("website/static/icon", filename="mainicon.png")}}' type="image/png"> #}
+    <link rel="shortcut icon" href='{{url_for("static", path="/icon/mainicon.png")}}' type="image/png">
 
 </head>
 <body style="margin-right: 3%; margin-left: 3%; ">
@@ -24,9 +24,6 @@
     </li>
     <li class="nav-item">
         <a class="nav-link active" aria-current="page" href="/add_board"> Создать доску </a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link active" aria-current="page" href="/edit"> Редактировать аккаунт </a>
     </li>
 
     <li class="nav-item">
@@ -43,6 +40,10 @@
 
     <li class="nav-item">
         <a class="nav-link active" aria-current="page" href="/login"> Авторизация </a>
+    </li>
+
+    <li class="nav-item">
+        <a class="nav-link active" aria-current="page" href="/edit"> Редактировать аккаунт </a>
     </li>
 
     <li class="nav-item">

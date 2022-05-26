@@ -14,6 +14,7 @@ Base = declarative_base()
 
 class DBContext:
     """Контекст обращения к бд (если бд нет, то создать; если есть, то вернуть ссылку на нее)"""
+
     def __init__(self):
         self.db = session_maker()
 

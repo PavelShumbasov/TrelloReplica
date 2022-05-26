@@ -12,9 +12,9 @@ ENV PYTHONUNBUFFERED 1
 
 # install dependencies
 COPY requirements.txt .
-RUN pip install poetry
-RUN poetry install
-#RUN pip install -r requirements.txt
+#COPY poetry.lock pyproject.toml /app/
+RUN pip3 install --upgrade pip
+RUN pip3 install -r requirements.txt
 
 # copy project
 COPY . .

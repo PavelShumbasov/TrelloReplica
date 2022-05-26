@@ -126,7 +126,7 @@ def logout(request: Request, user: User = Depends(manager)):
 
 
 @router.get('/login_google')
-async def login(request: Request):
+async def login_google(request: Request):
     """OAUTH2 с помощью Google."""
     redirect_uri = request.url_for('auth')
     return await oauth.google.authorize_redirect(request, redirect_uri)

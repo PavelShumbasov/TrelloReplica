@@ -2,7 +2,6 @@ from . import app, debug, Base, engine
 from fastapi.testclient import TestClient
 from .test_data import *
 
-
 client = TestClient(app, base_url="http://127.0.0.1:8000/")
 
 
