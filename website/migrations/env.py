@@ -8,6 +8,8 @@ from website.base import *
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
+from website.config import settings
+
 config = context.config
 
 # Interpret the config file for Python logging.
@@ -39,7 +41,7 @@ def run_migrations_offline():
     script output.
 
     """
-    url = DATABASE_URL
+    url = settings.db_url
     context.configure(
         url=url,
         target_metadata=target_metadata,

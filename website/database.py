@@ -2,9 +2,11 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 
-DATABASE_URL = "sqlite:///./database.db"
+from website.config import settings
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+DATABASE_URL = settings.db_url
+
+engine = create_engine(DATABASE_URL)
 session_maker = sessionmaker(bind=engine, autocommit=False, autoflush=False)  # Объект, который создает сессии с бд
 
 Base = declarative_base()
