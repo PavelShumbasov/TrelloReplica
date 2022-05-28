@@ -29,6 +29,8 @@ def subscribe_on_events(request: Request, user=Depends(manager), db=Depends(get_
 async def subscribe_on_events(request: Request, user=Depends(manager), db=Depends(get_db)):
     """Подписка на уведомления с помощью id для телеграма"""
     tg_id = (await request.form()).get("tg_id")
+    if tg_id.is_alpha() or len(tg_id) != 9:
+        flash(request, "Введите корректный id", "alert alert-danger")
     tg_user = db.query(TgUser).filter(TgUser.user_id == user.id).first()
     is_subscribed = False
     if not tg_user:
@@ -101,6 +103,10 @@ def as_collaborator_added_message(tg_user_id, board_name):
 
 def board_deleted_message(tg_user_id, board_name):
     send_messages(f"❌ Доска {board_name} была удалена", tg_user_id)
+
+
+def import_to_board_message(tg_user_id, board_name, user_name):
+    send_messages(f"🔵 Доска {board_name} была обновлена пользователем {user_name} с помощью импорта", tg_user_id)
 
 
 def send_notification(tg_users: list, send_message: Callable, *params):

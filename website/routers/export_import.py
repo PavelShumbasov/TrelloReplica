@@ -7,6 +7,8 @@ from starlette.responses import FileResponse
 
 from . import templates, flash
 from .auth import manager
+from .bot import import_to_board_message
+from .views import get_participants_tg_id
 from ..database import get_db
 from ..models import Board, BColumn, Task, User
 
@@ -21,8 +23,10 @@ async def import_board(board_id: int, request: Request, file: UploadFile, user: 
     """Импорт данных в доску из csv файла (Excel)"""
     board = db.query(Board).filter(Board.id == board_id).first()
 
+    # Открываем файл, который пришел по сети и сохраняем его локально
     with open("file_to_import.csv", "w", encoding=ENCODING) as import_file:
         import_file.write((await file.read()).decode(ENCODING))
+    # Открываем локально сохраненный файл
     with open("file_to_import.csv", "r", encoding=ENCODING) as import_file:
         reader = DictReader(import_file, delimiter=";")
         headers = reader.fieldnames
@@ -50,6 +54,10 @@ async def import_board(board_id: int, request: Request, file: UploadFile, user: 
                         db.add(task)
         db.commit()
         flash(request, "Задачи добавлены", category="alert alert-success")
+
+        tg_users = get_participants_tg_id(db, board, user)
+        for tg_user in tg_users:
+            import_to_board_message(tg_user.tg_id, board.name, user.username)
         return templates.TemplateResponse("export_import.html", {"request": request, "board": board})
 
 

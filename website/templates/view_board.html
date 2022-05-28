@@ -30,6 +30,7 @@
 
 
         <h1> {{ board.name }} </h1>
+        <h5 class="text-secondary">{{ board.theme.name }}</h5>
 
         <div class="card" style="width: 20rem;">
             <ul class="list-group list-group-horizontal">
@@ -139,10 +140,13 @@
 </div>
 {% if can_delete %}
 <a href="{{url_for('add_collaborator', board_id=board.id)}}">
-    <input type="submit" class="btn btn-primary" value="Участники доски">
+    <button class="btn btn-primary"
+            style="margin-top: 10px; margin-right: 10px">Участники доски
+    </button>
 </a>
 <a href="{{url_for('import_board', board_id=board.id)}}">
-    <input type="submit" class="btn btn-primary" value="Импорт/экспорт данных">
+    <input type="submit" class="btn btn-primary" value="Импорт/экспорт данных"
+           style="margin-top: 10px; margin-left: 10px">
 </a>
 {% endif %}
 

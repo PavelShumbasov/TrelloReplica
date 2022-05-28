@@ -16,7 +16,7 @@
             <form action="{{url_for('import_board', board_id=board.id)}}" enctype="multipart/form-data" method="post">
                 <label for="file" class="form-label">CSV файл с доской (кодировка - UTF-8)</label>
                 <input class="form-control" name="file" id="file" type="file" required>
-                <input type="submit" value="Импортировать" class="btn btn-primary">
+                <input type="submit" value="Импортировать" class="btn btn-primary" style="margin-top: 10px">
             </form>
         </div>
         <a href="{{url_for('export_board', board_id=board.id)}}">

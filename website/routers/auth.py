@@ -183,13 +183,14 @@ async def edit(request: Request, user: UserAuth = Depends(UserAuth), db: Session
     elif len(user.email) < 4:
         flash(request, "Email is invalid.", category='alert alert-danger')
     else:
-        current_user.email = user.email
-        current_user.username = user.username
-        current_user.password = generate_password_hash(user.password1, method='sha256')
+        updated_user = db.query(User).filter(User.id == current_user.id).first()
+        updated_user.email = user.email
+        updated_user.username = user.username
+        updated_user.password = generate_password_hash(user.password1, method='sha256')
         db.commit()
         flash(request, 'User updated!', category="alert alert-info")
 
-        access_token = manager.create_access_token(data={"sub": user.username})
+        access_token = manager.create_access_token(data={"sub": updated_user.username})
         resp = RedirectResponse(url="/edit", status_code=status.HTTP_302_FOUND)
         manager.set_cookie(resp, access_token)
         return resp

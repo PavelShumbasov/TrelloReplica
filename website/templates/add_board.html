@@ -17,7 +17,7 @@
         <p class="card-text">Здесь вы можете создать новую доску</p>
         <form action="/add_board" method="post">
             <label for="name">Название доски</label>
-            <input type="text" name="name" id="name">
+            <input type="text" name="name" id="name" required>
             <div class="form-check">
                 <input class="form-check-input" type="checkbox" value="True" id="is_private" name="is_private">
                 <label class="form-check-label" for="is_private">
@@ -25,7 +25,7 @@
                 </label>
             </div>
             <label for="theme_id">Тематика</label>
-            <select class="form-control form-control-sm" id="theme_id" name="theme_id">
+            <select class="form-control form-control-sm" id="theme_id" name="theme_id" required>
                 {% for theme in themes %}
                 <option value={{theme.id}}>{{theme.name}}</option>
                 {% endfor %}
