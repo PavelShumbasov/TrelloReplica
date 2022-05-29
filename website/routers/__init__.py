@@ -6,17 +6,17 @@ from starlette.requests import Request
 from starlette.templating import Jinja2Templates
 from fastapi import WebSocket
 
-config = Config('.env')  # Получаем кофигурационные переменные (токены для гугл аккаунта)
+config = Config(
+    ".env"
+)  # Получаем кофигурационные переменные (токены для гугл аккаунта)
 oauth = OAuth(config)  # Создаем объект для гугл авторизации из полученных токенов
-CONF_URL = 'https://accounts.google.com/.well-known/openid-configuration'
+CONF_URL = "https://accounts.google.com/.well-known/openid-configuration"
 
 # Конфигурация объекта для авторизации через гугл
 oauth.register(
-    name='google',
+    name="google",
     server_metadata_url=CONF_URL,
-    client_kwargs={
-        'scope': 'openid email profile'
-    }
+    client_kwargs={"scope": "openid email profile"},
 )
 
 # Объект для отрисовки шаблонов с помощью Jinja2Templates
@@ -36,7 +36,7 @@ def get_flashed_messages(request: Request):
 
 
 # Регистрация функции внутри шаблонов
-templates.env.globals['get_flashed_messages'] = get_flashed_messages
+templates.env.globals["get_flashed_messages"] = get_flashed_messages
 
 
 class ConnectionManager:

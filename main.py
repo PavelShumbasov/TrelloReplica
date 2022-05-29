@@ -9,9 +9,7 @@ from website.routers.auth import NotAuthenticatedException, exc_handler
 from website import models
 from website.database import engine
 
-middleware = [
-    Middleware(SessionMiddleware, secret_key='secret-key')
-]
+middleware = [Middleware(SessionMiddleware, secret_key="secret-key")]
 app = FastAPI(middleware=middleware)
 
 # Подключение подприложений сайта
@@ -24,7 +22,7 @@ app.include_router(bot.router)
 models.Base.metadata.create_all(engine)
 
 # Подключение папки со статикой и обработка исключений неавторизованного пользователя
-app.mount("/website/static", StaticFiles(directory='website/static'), name="static")
+app.mount("/website/static", StaticFiles(directory="website/static"), name="static")
 app.add_exception_handler(NotAuthenticatedException, exc_handler)
 
 if __name__ == "__main__":

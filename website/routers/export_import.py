@@ -18,8 +18,13 @@ ENCODING = "utf-8-sig"
 
 
 @router.post("/import/{board_id}")
-async def import_board(board_id: int, request: Request, file: UploadFile, user: User = Depends(manager),
-                       db: Session = Depends(get_db)):
+async def import_board(
+    board_id: int,
+    request: Request,
+    file: UploadFile,
+    user: User = Depends(manager),
+    db: Session = Depends(get_db),
+):
     """Импорт данных в доску из csv файла (Excel)"""
     board = db.query(Board).filter(Board.id == board_id).first()
 
@@ -40,17 +45,29 @@ async def import_board(board_id: int, request: Request, file: UploadFile, user: 
             col_links[col_name] = column
 
         for col_name in headers:
-            col_links[col_name] = db.query(BColumn).filter(BColumn.name == col_name).first()
+            col_links[col_name] = (
+                db.query(BColumn).filter(BColumn.name == col_name).first()
+            )
 
         for row in reader:
             row = dict(row)
             for col_name in row:
                 if row.get(col_name):
-                    task = db.query(Task).filter((Task.text == row.get(col_name)) &
-                                                 (Task.column_id == col_links[col_name].id)).first()
+                    task = (
+                        db.query(Task)
+                        .filter(
+                            (Task.text == row.get(col_name))
+                            & (Task.column_id == col_links[col_name].id)
+                        )
+                        .first()
+                    )
                     if not task:
-                        task = Task(text=row.get(col_name), column_id=col_links[col_name].id, author_id=user.id,
-                                    board_id=board_id)
+                        task = Task(
+                            text=row.get(col_name),
+                            column_id=col_links[col_name].id,
+                            author_id=user.id,
+                            board_id=board_id,
+                        )
                         db.add(task)
         db.commit()
         flash(request, "Задачи добавлены", category="alert alert-success")
@@ -58,26 +75,40 @@ async def import_board(board_id: int, request: Request, file: UploadFile, user: 
         tg_users = get_participants_tg_id(db, board, user)
         for tg_user in tg_users:
             import_to_board_message(tg_user.tg_id, board.name, user.username)
-        return templates.TemplateResponse("export_import.html", {"request": request, "board": board})
+        return templates.TemplateResponse(
+            "export_import.html", {"request": request, "board": board}
+        )
 
 
 @router.get("/import/{board_id}")
-def import_board(board_id: int, request: Request, user: User = Depends(manager),
-                 db: Session = Depends(get_db)):
+def import_board(
+    board_id: int,
+    request: Request,
+    user: User = Depends(manager),
+    db: Session = Depends(get_db),
+):
     """Отрисовка страницу для импорта / экспорта доски"""
     board = db.query(Board).filter(Board.id == board_id).first()
-    can_edit = board.author.id == user.id or any([user.id == collab.user_id for collab in board.collaborators])
+    can_edit = board.author.id == user.id or any(
+        [user.id == collab.user_id for collab in board.collaborators]
+    )
     if not can_edit:
         return templates.TemplateResponse("no_board.html", {"request": request})
-    return templates.TemplateResponse("export_import.html", {"request": request, "board": board})
+    return templates.TemplateResponse(
+        "export_import.html", {"request": request, "board": board}
+    )
 
 
 @router.get("/export/{board_id}")
-async def export_board(board_id: int, request: Request, user=Depends(manager), db=Depends(get_db)):
+async def export_board(
+    board_id: int, request: Request, user=Depends(manager), db=Depends(get_db)
+):
     """Получаем файл с нашей доски в формате csv"""
     board = db.query(Board).filter(Board.id == board_id).first()
 
-    with open(f"board_to_export.csv", "w", encoding=ENCODING, newline="") as export_file:
+    with open(
+        f"board_to_export.csv", "w", encoding=ENCODING, newline=""
+    ) as export_file:
         columns = board.b_columns
         headers = [col.name for col in columns]
         writer = DictWriter(export_file, fieldnames=headers, delimiter=";")
@@ -93,4 +124,6 @@ async def export_board(board_id: int, request: Request, user=Depends(manager), d
 
             writer.writerow(row)
 
-    return FileResponse("board_to_export.csv", media_type="file/txt", filename=f"{board.name}.csv")
+    return FileResponse(
+        "board_to_export.csv", media_type="file/txt", filename=f"{board.name}.csv"
+    )

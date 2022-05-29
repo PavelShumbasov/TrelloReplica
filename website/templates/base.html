@@ -35,6 +35,12 @@
     </li>
 
     <li class="nav-item">
+        <a class="nav-link active" aria-current="page" href="/edit"> Редактировать аккаунт </a>
+    </li>
+
+    {% if not request.cookies.get("auth_info") %}
+
+    <li class="nav-item">
         <a class="nav-link active" aria-current="page" href="/sign_up"> Регистрация </a>
     </li>
 
@@ -42,13 +48,12 @@
         <a class="nav-link active" aria-current="page" href="/login"> Авторизация </a>
     </li>
 
-    <li class="nav-item">
-        <a class="nav-link active" aria-current="page" href="/edit"> Редактировать аккаунт </a>
-    </li>
-
+    {% else %}
     <li class="nav-item">
         <a class="nav-link active" aria-current="page" href="/logout"> Выйти из аккаунта </a>
     </li>
+
+    {% endif %}
 
 </ul>
 

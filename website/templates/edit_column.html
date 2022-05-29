@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
-{% block title %}Редактирование задания{% endblock %}
+{% block title %}Редактирование колонки{% endblock %}
 {% block header %}
-<h1>Редактирование задания</h1>
+<h1>Редактирование колонки</h1>
 {% endblock %}
 
 {% block content %}
@@ -23,36 +23,29 @@
 
 <div class="card border-primary mb-3" style="width: 22rem;">
     <div class="card-body">
-        <h5>Автор: {{task.author.username}}</h5>
-        <h5>Дата создания: {{task.date_created}}</h5>
+        <h5>Доска: {{column.board.name}}</h5>
     </div>
 </div>
 
 <div class="card border-primary mb-3" style="width: 22rem;">
     <div class="card-body">
-        <form action="{{ url_for('edit_task', id=task.id) }}" role="form" class="form-horizontal" method="POST">
+        <form action="{{ url_for('edit_column', column_id=column.id) }}" role="form" class="form-horizontal" method="POST">
             <div class="mb-3">
-                <label for="text" class="form-label">Задание</label>
-                <input type="text" class="form-control" id="text" name="text" value="{{ task.text }}" required>
+                <label for="name" class="form-label">Название колонки</label>
+                <input type="text" class="form-control" id="name" name="name" value="{{ column.name }}" required>
             </div>
-            <div class="mb-3">
-                <label for="tag" class="form-label">Тэг</label>
-                <input type="text" class="form-control" id="tag" name="tag" placeholder="Тэг" value="{{task.tag.text}}">
-
-            </div>
-
-            <div class="mb-3">
-                <div class="form-group">
-                    <label for="deadline">Дедлайн:</label>
-                    <input type="date" class="form-control" id="deadline" name="deadline" value={{task.date_deadline}}>
-                </div>
-            </div>
+            <label for="color_id">Цвет</label>
+            <select class="form-control form-control-sm" id="color_id" name="color_id">
+                {% for color in colors %}
+                <option value={{ color.id }}>{{ color.description }}</option>
+                {% endfor %}
+            </select>
             <button type="submit" class="btn btn-primary">Отредактировать</button>
         </form>
     </div>
 </div>
 
-<a href="{{url_for('view_board', id=task.board.id)}}">
+<a href="{{url_for('view_board', id=column.board_id)}}">
     <button type="submit"
             class="btn btn-circle btn-outline-primary">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"

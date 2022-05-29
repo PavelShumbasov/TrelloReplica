@@ -7,7 +7,9 @@ from website.config import settings
 DATABASE_URL = settings.db_url
 
 engine = create_engine(DATABASE_URL)
-session_maker = sessionmaker(bind=engine, autocommit=False, autoflush=False)  # Объект, который создает сессии с бд
+session_maker = sessionmaker(
+    bind=engine, autocommit=False, autoflush=False
+)  # Объект, который создает сессии с бд
 
 Base = declarative_base()
 

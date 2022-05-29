@@ -21,12 +21,16 @@ def subscribe_on_events(request: Request, user=Depends(manager), db=Depends(get_
     is_subscribed = False
     if tg_user:
         is_subscribed = tg_user.is_subscribed
-    return templates.TemplateResponse("subscribe_on_events.html",
-                                      {"request": request, "tg_user": tg_user, "is_subscribed": is_subscribed})
+    return templates.TemplateResponse(
+        "subscribe_on_events.html",
+        {"request": request, "tg_user": tg_user, "is_subscribed": is_subscribed},
+    )
 
 
 @router.post("/subscribe_on_events")
-async def subscribe_on_events(request: Request, user=Depends(manager), db=Depends(get_db)):
+async def subscribe_on_events(
+    request: Request, user=Depends(manager), db=Depends(get_db)
+):
     """Подписка на уведомления с помощью id для телеграма"""
     tg_id = (await request.form()).get("tg_id")
     if tg_id.is_alpha() or len(tg_id) != 9:
@@ -43,12 +47,16 @@ async def subscribe_on_events(request: Request, user=Depends(manager), db=Depend
         is_subscribed = True
         flash(request, "Вы успешно обновили свой аккаунт", "alert alert-success")
     db.commit()
-    return templates.TemplateResponse("subscribe_on_events.html",
-                                      {"request": request, "tg_user": tg_user, "is_subscribed": is_subscribed})
+    return templates.TemplateResponse(
+        "subscribe_on_events.html",
+        {"request": request, "tg_user": tg_user, "is_subscribed": is_subscribed},
+    )
 
 
 @router.get("/unsubscribe_from_events")
-def unsubscribe_from_events(request: Request, user=Depends(manager), db=Depends(get_db)):
+def unsubscribe_from_events(
+    request: Request, user=Depends(manager), db=Depends(get_db)
+):
     """Отписываемся от уведомлений бота"""
     tg_user = db.query(TgUser).filter(TgUser.user_id == user.id).first()
     if not tg_user:
@@ -57,28 +65,43 @@ def unsubscribe_from_events(request: Request, user=Depends(manager), db=Depends(
         flash(request, "Вы отписались от обновлений", "alert alert-success")
         tg_user.is_subscribed = False
         db.commit()
-    return templates.TemplateResponse("subscribe_on_events.html",
-                                      {"request": request, "tg_user": tg_user, "is_subscribed": tg_user.is_subscribed})
+    return templates.TemplateResponse(
+        "subscribe_on_events.html",
+        {
+            "request": request,
+            "tg_user": tg_user,
+            "is_subscribed": tg_user.is_subscribed,
+        },
+    )
 
 
 def send_messages(text, tg_user_id):
     """Универсальная функция, которая совершает запрос к телеграм бот API"""
-    response = req_post(BASE_URL + "sendMessage", data={"chat_id": tg_user_id, "text": text})
+    response = req_post(
+        BASE_URL + "sendMessage", data={"chat_id": tg_user_id, "text": text}
+    )
 
 
 """Описание сообщений для различных событий"""
 
 
 def task_added_message(tg_user_id, board_name, col_name, task_name):
-    send_messages(f"➕ На доске {board_name} в столбце {col_name} создана новая задача '{task_name}'", tg_user_id)
+    send_messages(
+        f"➕ На доске {board_name} в столбце {col_name} создана новая задача '{task_name}'",
+        tg_user_id,
+    )
 
 
 def task_updated_message(tg_user_id, board_name, col_name):
-    send_messages(f"🔵 На доске {board_name} обновлена задача в столбце {col_name}", tg_user_id)
+    send_messages(
+        f"🔵 На доске {board_name} обновлена задача в столбце {col_name}", tg_user_id
+    )
 
 
 def task_deleted_message(tg_user_id, board_name, col_name):
-    send_messages(f"❌ На доске {board_name} удалена задача в столбце {col_name}", tg_user_id)
+    send_messages(
+        f"❌ На доске {board_name} удалена задача в столбце {col_name}", tg_user_id
+    )
 
 
 def col_added_message(tg_user_id, board_name, col_name):
@@ -90,7 +113,9 @@ def col_deleted_message(tg_user_id, board_name, col_name):
 
 
 def collaborator_added_message(tg_user_id, board_name, user_name):
-    send_messages(f"➕ На доску {board_name} добавлен новый участник {user_name}", tg_user_id)
+    send_messages(
+        f"➕ На доску {board_name} добавлен новый участник {user_name}", tg_user_id
+    )
 
 
 def collaborator_deleted_message(tg_user_id, board_name, user_name):
@@ -106,7 +131,10 @@ def board_deleted_message(tg_user_id, board_name):
 
 
 def import_to_board_message(tg_user_id, board_name, user_name):
-    send_messages(f"🔵 Доска {board_name} была обновлена пользователем {user_name} с помощью импорта", tg_user_id)
+    send_messages(
+        f"🔵 Доска {board_name} была обновлена пользователем {user_name} с помощью импорта",
+        tg_user_id,
+    )
 
 
 def send_notification(tg_users: list, send_message: Callable, *params):
