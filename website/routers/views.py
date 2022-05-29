@@ -538,7 +538,8 @@ async def edit_board(
     themes = db.query(Theme).all()
 
     return templates.TemplateResponse(
-        "edit_board.html", {"request": request, "board": board_updated, "themes": themes}
+        "edit_board.html",
+        {"request": request, "board": board_updated, "themes": themes},
     )
 
 
@@ -565,7 +566,8 @@ async def edit_board(
     db.commit()
 
     return templates.TemplateResponse(
-        "edit_board.html", {"request": request, "board": board_updated, "themes": themes}
+        "edit_board.html",
+        {"request": request, "board": board_updated, "themes": themes},
     )
 
 
@@ -583,8 +585,10 @@ async def edit_column(
         return templates.TemplateResponse("no_board.html", {"request": request})
     colors = db.query(Color).all()
     return templates.TemplateResponse(
-        "edit_column.html", {"request": request, "column": column_updated, "colors": colors}
+        "edit_column.html",
+        {"request": request, "column": column_updated, "colors": colors},
     )
+
 
 @router.post("/edit_column/{column_id}")
 async def edit_column(
@@ -592,7 +596,8 @@ async def edit_column(
     request: Request,
     column: ColumnForm = Depends(ColumnForm),
     current_user: User = Depends(manager),
-    db: Session = Depends(get_db),):
+    db: Session = Depends(get_db),
+):
     """Редактирование данных колонки"""
     column_updated = db.query(BColumn).filter(BColumn.id == column_id).first()
     if not column_updated:
@@ -607,7 +612,8 @@ async def edit_column(
     db.commit()
 
     return templates.TemplateResponse(
-        "edit_column.html", {"request": request, "column": column_updated, "colors": colors}
+        "edit_column.html",
+        {"request": request, "column": column_updated, "colors": colors},
     )
 
 
