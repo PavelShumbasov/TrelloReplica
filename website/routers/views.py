@@ -586,15 +586,13 @@ async def edit_column(
         "edit_column.html", {"request": request, "column": column_updated, "colors": colors}
     )
 
-
 @router.post("/edit_column/{column_id}")
 async def edit_column(
     column_id: int,
     request: Request,
     column: ColumnForm = Depends(ColumnForm),
     current_user: User = Depends(manager),
-    db: Session = Depends(get_db),
-):
+    db: Session = Depends(get_db),):
     """Редактирование данных колонки"""
     column_updated = db.query(BColumn).filter(BColumn.id == column_id).first()
     if not column_updated:
