@@ -1,6 +1,7 @@
 import json
 from typing import Callable
-from datetime import datetime
+from datetime import timedelta, date, datetime
+from asyncio import sleep, create_task
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
@@ -20,7 +21,7 @@ from .bot import (
     col_added_message,
     col_deleted_message,
     board_deleted_message,
-    send_notification,
+    send_notification, board_edit_message, column_edit_message, task_moved_message, task_deadline_message,
 )
 from ..database import get_db
 from ..models import Board, User, Theme, Task, BColumn, Color, Tag, Collaborator, TgUser
@@ -31,16 +32,16 @@ router = APIRouter(tags=["views"])
 
 @router.get("/")
 def home(
-    request: Request, user: User = Depends(manager), db: Session = Depends(get_db)
+        request: Request, user: User = Depends(manager), db: Session = Depends(get_db)
 ):
     """Отрисовка шаблона главной страницы. Достаем все публичные доски"""
     boards = (
         db.query(Board)
-        .where(
+            .where(
             (Board.is_private == False)
             | ((Board.is_private == True) & (Board.author_id == user.id))
         )
-        .all()
+            .all()
     )
     return templates.TemplateResponse(
         "home.html", {"request": request, "boards": boards}
@@ -49,7 +50,7 @@ def home(
 
 @router.get("/my_boards")
 def my_boards(
-    request: Request, user: User = Depends(manager), db: Session = Depends(get_db)
+        request: Request, user: User = Depends(manager), db: Session = Depends(get_db)
 ):
     """Отображаем все доски текущего пользователя"""
     boards = db.query(Board).filter(Board.author_id == user.id).all()
@@ -64,7 +65,7 @@ def my_boards(
 
 @router.get("/add_board")
 def add_board(
-    request: Request, user: User = Depends(manager), db: Session = Depends(get_db)
+        request: Request, user: User = Depends(manager), db: Session = Depends(get_db)
 ):
     """Отрисовка шаблона добавления доски."""
     themes = db.query(Theme).all()
@@ -75,7 +76,7 @@ def add_board(
 
 @router.post("/add_board")
 async def add_board(
-    request: Request, user: User = Depends(manager), db: Session = Depends(get_db)
+        request: Request, user: User = Depends(manager), db: Session = Depends(get_db)
 ):
     """Создание новой доски"""
     board = BoardForm(**await request.form())
@@ -92,10 +93,10 @@ async def add_board(
 
 @router.get("/board/{id}")
 async def view_board(
-    id: int,
-    request: Request,
-    current_user: User = Depends(manager),
-    db: Session = Depends(get_db),
+        id: int,
+        request: Request,
+        current_user: User = Depends(manager),
+        db: Session = Depends(get_db),
 ):
     """Просмотр доски, перетаскивание заданий"""
     board = db.query(Board).filter(Board.id == id).first()
@@ -123,10 +124,10 @@ async def view_board(
 
 @router.get("/delete_board/{id}")
 def delete_board(
-    id: int,
-    request: Request,
-    current_user: User = Depends(manager),
-    db: Session = Depends(get_db),
+        id: int,
+        request: Request,
+        current_user: User = Depends(manager),
+        db: Session = Depends(get_db),
 ):
     """Удаление доски"""
     board = db.query(Board).filter(Board.id == id).first()
@@ -141,7 +142,7 @@ def delete_board(
     )
     for collaborator in collaborators:
         db.delete(collaborator)
-    tg_users = get_participants_tg_id(db, board, current_user)
+    tg_users = get_participants_tg_id(db, board)
     send_notification(tg_users, board_deleted_message, board.name)
 
     db.delete(board)
@@ -152,18 +153,18 @@ def delete_board(
 
 @router.post("/add_column/{id}")
 def add_column(
-    id: int,
-    request: Request,
-    current_user: User = Depends(manager),
-    db: Session = Depends(get_db),
-    column: ColumnForm = Depends(ColumnForm),
+        id: int,
+        request: Request,
+        current_user: User = Depends(manager),
+        db: Session = Depends(get_db),
+        column: ColumnForm = Depends(ColumnForm),
 ):
     """Добавление нового столбца в доске"""
     new_column = BColumn(name=column.name, color_id=column.color_id, board_id=id)
     db.add(new_column)
     db.commit()
 
-    tg_users = get_participants_tg_id(db, new_column.board, current_user)
+    tg_users = get_participants_tg_id(db, new_column.board)
     send_notification(
         tg_users, col_added_message, new_column.board.name, new_column.name
     )
@@ -173,10 +174,10 @@ def add_column(
 
 @router.get("/delete_column/{column_id}")
 def delete_column(
-    column_id: int,
-    request: Request,
-    current_user: User = Depends(manager),
-    db: Session = Depends(get_db),
+        column_id: int,
+        request: Request,
+        current_user: User = Depends(manager),
+        db: Session = Depends(get_db),
 ):
     """Удаление столбца из доски"""
     column = db.query(BColumn).filter(BColumn.id == column_id).first()
@@ -190,7 +191,7 @@ def delete_column(
     db.delete(column)
     db.commit()
 
-    tg_users = get_participants_tg_id(db, column.board, current_user)
+    tg_users = get_participants_tg_id(db, column.board)
     send_notification(tg_users, col_deleted_message, column.board.name, column.name)
 
     return RedirectResponse(url=f"/board/{board_id}", status_code=status.HTTP_302_FOUND)
@@ -198,12 +199,12 @@ def delete_column(
 
 @router.post("/add_task/{board_id}/{column_id}")
 def add_task(
-    board_id: int,
-    column_id: int,
-    request: Request,
-    current_user: User = Depends(manager),
-    db: Session = Depends(get_db),
-    task: TaskForm = Depends(TaskForm),
+        board_id: int,
+        column_id: int,
+        request: Request,
+        current_user: User = Depends(manager),
+        db: Session = Depends(get_db),
+        task: TaskForm = Depends(TaskForm),
 ):
     """Добавление задания в столбец"""
     new_task = Task(
@@ -215,7 +216,7 @@ def add_task(
     db.add(new_task)
     db.commit()
 
-    tg_users = get_participants_tg_id(db, new_task.board, current_user)
+    tg_users = get_participants_tg_id(db, new_task.board)
     send_notification(
         tg_users,
         task_added_message,
@@ -229,10 +230,10 @@ def add_task(
 
 @router.get("/delete_task/{task_id}")
 def delete_task(
-    task_id: int,
-    request: Request,
-    current_user: User = Depends(manager),
-    db: Session = Depends(get_db),
+        task_id: int,
+        request: Request,
+        current_user: User = Depends(manager),
+        db: Session = Depends(get_db),
 ):
     """Удаление задания из столбца"""
     task = db.query(Task).filter(Task.id == task_id).first()
@@ -243,7 +244,7 @@ def delete_task(
     if not can_delete:
         return templates.TemplateResponse("no_board.html", {"request": request})
 
-    tg_users = get_participants_tg_id(db, task.board, current_user)
+    tg_users = get_participants_tg_id(db, task.board)
     send_notification(
         tg_users, task_deleted_message, task.board.name, task.b_column.name
     )
@@ -255,10 +256,10 @@ def delete_task(
 
 @router.get("/edit_task/{task_id}")
 def edit_task(
-    task_id: int,
-    request: Request,
-    current_user: User = Depends(manager),
-    db: Session = Depends(get_db),
+        task_id: int,
+        request: Request,
+        current_user: User = Depends(manager),
+        db: Session = Depends(get_db),
 ):
     """Отрисовка страницы редактирования задания"""
     task = db.query(Task).filter(Task.id == task_id).first()
@@ -275,10 +276,10 @@ def edit_task(
 
 @router.post("/edit_task/{id}")
 async def edit_task(
-    id: int,
-    request: Request,
-    current_user: User = Depends(manager),
-    db: Session = Depends(get_db),
+        id: int,
+        request: Request,
+        current_user: User = Depends(manager),
+        db: Session = Depends(get_db),
 ):
     """Редактирование задания. Валидация данных"""
     task = db.query(Task).filter(Task.id == id).first()
@@ -301,7 +302,7 @@ async def edit_task(
     task.text = text
     flash(request, "Задача отредактирована", category="alert alert-success")
 
-    tg_users = get_participants_tg_id(db, task.board, current_user)
+    tg_users = get_participants_tg_id(db, task.board)
     send_notification(
         tg_users, task_updated_message, task.board.name, task.b_column.name
     )
@@ -315,10 +316,10 @@ async def edit_task(
 
 @router.get("/add_collaborator/{board_id}")
 def add_collaborator(
-    board_id: int,
-    request: Request,
-    current_user: User = Depends(manager),
-    db: Session = Depends(get_db),
+        board_id: int,
+        request: Request,
+        current_user: User = Depends(manager),
+        db: Session = Depends(get_db),
 ):
     """Отрисовка страницы добавления нового участника"""
     board = db.query(Board).filter(Board.id == board_id).first()
@@ -334,11 +335,11 @@ def add_collaborator(
 
 @router.post("/add_collaborator/{board_id}")
 def add_collaborator(
-    board_id: int,
-    request: Request,
-    current_user: User = Depends(manager),
-    db: Session = Depends(get_db),
-    collaborator: Collaborator = Depends(CollaboratorForm),
+        board_id: int,
+        request: Request,
+        current_user: User = Depends(manager),
+        db: Session = Depends(get_db),
+        collaborator: Collaborator = Depends(CollaboratorForm),
 ):
     """Добавление нового участника в доску. Валидация данных пользователя"""
     board = db.query(Board).filter(Board.id == board_id).first()
@@ -365,7 +366,7 @@ def add_collaborator(
             db.add(new_collaborator)
             db.commit()
 
-        tg_users = get_participants_tg_id(db, board, current_user)
+        tg_users = get_participants_tg_id(db, board)
         for tg_user in tg_users:
             collaborator_added_message(
                 tg_user.tg_id, board.name, new_collaborator.user.username
@@ -378,11 +379,11 @@ def add_collaborator(
 
 @router.get("/delete_collaborator/{board_id}/{collaborator_id}")
 def delete_collaborator(
-    board_id: int,
-    collaborator_id: int,
-    request: Request,
-    current_user: User = Depends(manager),
-    db: Session = Depends(get_db),
+        board_id: int,
+        collaborator_id: int,
+        request: Request,
+        current_user: User = Depends(manager),
+        db: Session = Depends(get_db),
 ):
     """Удаление участника с доски"""
     board = db.query(Board).filter(Board.id == board_id).first()
@@ -390,18 +391,18 @@ def delete_collaborator(
         return templates.TemplateResponse("no_board.html", {"request": request})
     collaborator = (
         db.query(Collaborator)
-        .filter(
+            .filter(
             Collaborator.user_id == collaborator_id
             and Collaborator.board_id == board_id
         )
-        .first()
+            .first()
     )
     if not collaborator:
         flash(request, "Такого пользователя нет", category="alert alert-danger")
     else:
         flash(request, "Пользователь успешно удален", category="alert alert-success")
 
-        tg_users = get_participants_tg_id(db, board, current_user)
+        tg_users = get_participants_tg_id(db, board)
         for tg_user in tg_users:
             collaborator_deleted_message(
                 tg_user.tg_id, board.name, collaborator.user.username
@@ -417,19 +418,19 @@ def delete_collaborator(
 
 @router.post("/find_board")
 async def find_board(
-    request: Request,
-    current_user: User = Depends(manager),
-    db: Session = Depends(get_db),
+        request: Request,
+        current_user: User = Depends(manager),
+        db: Session = Depends(get_db),
 ):
     """Поиск доски с помощью Ajax-запроса"""
     name = (await request.form()).get("name")
     board = (
         db.query(Board)
-        .filter(
+            .filter(
             Board.name == name
             and (Board.is_private is True or Board.author_id == current_user.id)
         )
-        .first()
+            .first()
     )
     if board:
         answer = {"result": "<a href=" + f"/board/{board.id}" + "> Найденная доска<a>"}
@@ -441,9 +442,9 @@ async def find_board(
 
 @router.get("/view_themes")
 async def view_themes(
-    request: Request,
-    current_user: User = Depends(manager),
-    db: Session = Depends(get_db),
+        request: Request,
+        current_user: User = Depends(manager),
+        db: Session = Depends(get_db),
 ):
     """Отрисовка страницы просмотра тем"""
     themes = db.query(Theme).all()
@@ -460,10 +461,10 @@ async def add_theme(request: Request, current_user: User = Depends(manager)):
 
 @router.post("/add_theme")
 async def add_theme(
-    request: Request,
-    theme_form: ThemeForm = Depends(ThemeForm),
-    current_user: User = Depends(manager),
-    db: Session = Depends(get_db),
+        request: Request,
+        theme_form: ThemeForm = Depends(ThemeForm),
+        current_user: User = Depends(manager),
+        db: Session = Depends(get_db),
 ):
     """Добавление темы. Валидация на наличие темы"""
     theme = db.query(Theme).filter(Theme.name == theme_form.name).first()
@@ -482,10 +483,10 @@ async def add_theme(
 
 @router.get("/edit_theme/{theme_id}")
 async def edit_theme(
-    theme_id: int,
-    request: Request,
-    current_user: User = Depends(manager),
-    db: Session = Depends(get_db),
+        theme_id: int,
+        request: Request,
+        current_user: User = Depends(manager),
+        db: Session = Depends(get_db),
 ):
     """Отрисовка шаблона редактирования темы"""
     theme = db.query(Theme).filter(Theme.id == theme_id).first()
@@ -500,11 +501,11 @@ async def edit_theme(
 
 @router.post("/edit_theme/{theme_id}")
 async def edit_theme(
-    theme_id: int,
-    request: Request,
-    theme_form: ThemeForm = Depends(ThemeForm),
-    current_user: User = Depends(manager),
-    db: Session = Depends(get_db),
+        theme_id: int,
+        request: Request,
+        theme_form: ThemeForm = Depends(ThemeForm),
+        current_user: User = Depends(manager),
+        db: Session = Depends(get_db),
 ):
     """Редактирование темы. Валидация данных"""
     theme = db.query(Theme).filter(Theme.id == theme_id).first()
@@ -524,15 +525,20 @@ async def edit_theme(
 
 @router.get("/edit_board/{board_id}")
 async def edit_board(
-    board_id: int,
-    request: Request,
-    current_user: User = Depends(manager),
-    db: Session = Depends(get_db),
+        board_id: int,
+        request: Request,
+        current_user: User = Depends(manager),
+        db: Session = Depends(get_db),
 ):
     """Отрисовка шаблоны редактирования данных доски"""
 
     board_updated = db.query(Board).filter(Board.id == board_id).first()
-    if not board_updated:
+
+    can_delete = bool(board_updated) and (board_updated.author.id == current_user.id or any(
+        [current_user.id == collab.user_id for collab in board_updated.collaborators]
+    ))
+
+    if not can_delete:
         return templates.TemplateResponse("no_board.html", {"request": request})
 
     themes = db.query(Theme).all()
@@ -545,15 +551,20 @@ async def edit_board(
 
 @router.post("/edit_board/{board_id}")
 async def edit_board(
-    board_id: int,
-    request: Request,
-    current_user: User = Depends(manager),
-    db: Session = Depends(get_db),
+        board_id: int,
+        request: Request,
+        current_user: User = Depends(manager),
+        db: Session = Depends(get_db),
 ):
     """Редактирование данных доски"""
     board = BoardForm(**await request.form())
     board_updated = db.query(Board).filter(Board.id == board_id).first()
-    if not board_updated:
+
+    can_delete = bool(board_updated) and (board_updated.author.id == current_user.id or any(
+        [current_user.id == collab.user_id for collab in board_updated.collaborators]
+    ))
+
+    if not can_delete:
         return templates.TemplateResponse("no_board.html", {"request": request})
 
     board_updated.name = board.name
@@ -565,6 +576,9 @@ async def edit_board(
     flash(request, "Доска успешно отредактирована", category="alert alert-success")
     db.commit()
 
+    tg_users = get_participants_tg_id(db, board_updated)
+    send_notification(tg_users, board_edit_message, board_updated.name, current_user.username)
+
     return templates.TemplateResponse(
         "edit_board.html",
         {"request": request, "board": board_updated, "themes": themes},
@@ -573,16 +587,22 @@ async def edit_board(
 
 @router.get("/edit_column/{column_id}")
 async def edit_column(
-    column_id: int,
-    request: Request,
-    current_user: User = Depends(manager),
-    db: Session = Depends(get_db),
+        column_id: int,
+        request: Request,
+        current_user: User = Depends(manager),
+        db: Session = Depends(get_db),
 ):
     """Отрисовка шаблоны редактирования колонки"""
 
     column_updated = db.query(BColumn).filter(BColumn.id == column_id).first()
-    if not column_updated:
+
+    can_delete = bool(column_updated) and (column_updated.board.author.id == current_user.id or any(
+        [current_user.id == collab.user_id for collab in column_updated.board.collaborators]
+    ))
+
+    if not can_delete:
         return templates.TemplateResponse("no_board.html", {"request": request})
+
     colors = db.query(Color).all()
     return templates.TemplateResponse(
         "edit_column.html",
@@ -592,15 +612,20 @@ async def edit_column(
 
 @router.post("/edit_column/{column_id}")
 async def edit_column(
-    column_id: int,
-    request: Request,
-    column: ColumnForm = Depends(ColumnForm),
-    current_user: User = Depends(manager),
-    db: Session = Depends(get_db),
+        column_id: int,
+        request: Request,
+        column: ColumnForm = Depends(ColumnForm),
+        current_user: User = Depends(manager),
+        db: Session = Depends(get_db),
 ):
     """Редактирование данных колонки"""
     column_updated = db.query(BColumn).filter(BColumn.id == column_id).first()
-    if not column_updated:
+
+    can_delete = bool(column_updated) and (column_updated.board.author.id == current_user.id or any(
+        [current_user.id == collab.user_id for collab in column_updated.board.collaborators]
+    ))
+
+    if not can_delete:
         return templates.TemplateResponse("no_board.html", {"request": request})
 
     column_updated.name = column.name
@@ -610,6 +635,10 @@ async def edit_column(
 
     flash(request, "Колонка успешно отредактирована", category="alert alert-success")
     db.commit()
+
+    tg_users = get_participants_tg_id(db, column_updated.board)
+    send_notification(tg_users, column_edit_message, column_updated.board.name, column_updated.name,
+                      current_user.username)
 
     return templates.TemplateResponse(
         "edit_column.html",
@@ -621,17 +650,22 @@ def change_task_column(db: Session, task_id: int, col_id_new: int):
     """Изменение колонки у задачи для перетаскивания задач с помощью мыши"""
     task = db.query(Task).filter(Task.id == task_id).first()
     task.column_id = col_id_new
+
     db.commit()
 
+    tg_users = get_participants_tg_id(db, task.board)
+    send_notification(tg_users, task_moved_message, task.board.name, task.text,
+                      task.b_column.name)
 
-def get_participants_tg_id(db: Session, board: Board, current_user: User):
+
+def get_participants_tg_id(db: Session, board: Board):
     """Получение tg_id всех участников доски"""
     collaborators_id = set([collab.user_id for collab in board.collaborators])
-    collaborators_id.add(current_user.id)
+    collaborators_id.add(board.author.id)
     tg_users = (
         db.query(TgUser)
-        .where(TgUser.user_id.in_(collaborators_id) & TgUser.is_subscribed == True)
-        .all()
+            .where(TgUser.user_id.in_(collaborators_id) & TgUser.is_subscribed == True)
+            .all()
     )
     return tg_users
 
@@ -644,8 +678,29 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)
         while True:
             data = await websocket.receive_text()
             task, col = data.split()
-            task_id = int(task[task.rfind("-") + 1 :])
-            col_id = int(col[col.rfind("-") + 1 :])
+            task_id = int(task[task.rfind("-") + 1:])
+            col_id = int(col[col.rfind("-") + 1:])
             change_task_column(db, task_id, col_id)
     except WebSocketDisconnect:
         connection_manager.disconnect(websocket)
+
+
+# async def get_updates(db: Session):
+#     delay = 86400
+#     print(get_db())
+#     while True:
+#         tasks = db.query(Task).all()
+#
+#         for task in tasks:
+#             if task.date_deadline == date.today() + timedelta(days=1):
+#                 tg_users = get_participants_tg_id(db, task.board)
+#                 send_notification(tg_users, task_deadline_message, task.board.name, task.b_column.name,
+#                                   task.text)
+#
+#         await sleep(delay)
+#
+#
+# @router.on_event("startup")
+# async def startup(db: Session = Depends(get_db)):
+#     print(db)
+#     create_task(get_updates(db))

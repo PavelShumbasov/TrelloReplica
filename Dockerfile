@@ -10,11 +10,20 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
-# install dependencies
-COPY requirements.txt .
-#COPY poetry.lock pyproject.toml /app/
-RUN pip3 install --upgrade pip
-RUN pip3 install -r requirements.txt
+ENV POETRY_VERSION=1.1.12
+
+
+RUN pip install "poetry==$POETRY_VERSION"
+
+
+# set work directory
+WORKDIR /app
+
+COPY poetry.lock pyproject.toml /app/
+
+RUN poetry config virtualenvs.create false
+RUN poetry export -f requirements.txt --output requirements.txt
+RUN pip install -r requirements.txt
 
 # copy project
 COPY . .

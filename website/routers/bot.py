@@ -29,14 +29,19 @@ def subscribe_on_events(request: Request, user=Depends(manager), db=Depends(get_
 
 @router.post("/subscribe_on_events")
 async def subscribe_on_events(
-    request: Request, user=Depends(manager), db=Depends(get_db)
+        request: Request, user=Depends(manager), db=Depends(get_db)
 ):
     """Подписка на уведомления с помощью id для телеграма"""
     tg_id = (await request.form()).get("tg_id")
-    if tg_id.is_alpha() or len(tg_id) != 9:
-        flash(request, "Введите корректный id", "alert alert-danger")
     tg_user = db.query(TgUser).filter(TgUser.user_id == user.id).first()
-    is_subscribed = False
+    is_subscribed = tg_user.is_subscribed if tg_user else False
+    print(tg_id.isalpha())
+    if not tg_id.isdigit() or len(tg_id) != 9:
+        flash(request, "Введите корректный id", "alert alert-danger")
+        return templates.TemplateResponse(
+            "subscribe_on_events.html",
+            {"request": request, "tg_user": tg_user, "is_subscribed": is_subscribed},
+        )
     if not tg_user:
         tg_user = TgUser(user_id=user.id, tg_id=tg_id, is_subscribed=True)
         db.add(tg_user)
@@ -55,10 +60,11 @@ async def subscribe_on_events(
 
 @router.get("/unsubscribe_from_events")
 def unsubscribe_from_events(
-    request: Request, user=Depends(manager), db=Depends(get_db)
+        request: Request, user=Depends(manager), db=Depends(get_db)
 ):
     """Отписываемся от уведомлений бота"""
     tg_user = db.query(TgUser).filter(TgUser.user_id == user.id).first()
+    is_subscribed = False
     if not tg_user:
         flash(request, "Вы не добавили свой Telegram аккаунт", "alert alert-danger")
     else:
@@ -70,7 +76,7 @@ def unsubscribe_from_events(
         {
             "request": request,
             "tg_user": tg_user,
-            "is_subscribed": tg_user.is_subscribed,
+            "is_subscribed": is_subscribed,
         },
     )
 
@@ -133,6 +139,34 @@ def board_deleted_message(tg_user_id, board_name):
 def import_to_board_message(tg_user_id, board_name, user_name):
     send_messages(
         f"🔵 Доска {board_name} была обновлена пользователем {user_name} с помощью импорта",
+        tg_user_id,
+    )
+
+
+def task_moved_message(tg_user_id, board_name, task_name, col_name):
+    send_messages(
+        f"🔵 На доске {board_name} в колонку {col_name} была перемещена задача {task_name}",
+        tg_user_id,
+    )
+
+
+def board_edit_message(tg_user_id, board_name, user_name):
+    send_messages(
+        f"🔵 Доска {board_name} была изменена пользователем {user_name}",
+        tg_user_id,
+    )
+
+
+def column_edit_message(tg_user_id, board_name, col_name, user_name):
+    send_messages(
+        f"🔵 На доске {board_name} была изменена колонка {col_name} пользователем {user_name}",
+        tg_user_id,
+    )
+
+
+def task_deadline_message(tg_user_id, board_name, col_name, task_name):
+    send_messages(
+        f"🔵 На доске {board_name} в колонке {col_name} завтра наступает дедлайн задачи {task_name}",
         tg_user_id,
     )
 
