@@ -26,4 +26,4 @@
 #### Дополнительные материалы
 [ссылка на trello](https://trello.com/b/DwPH3Cck/semester-work-trello)
 
-[ссылка на шаблон сайта в Figma]()
+[ссылка на шаблон сайта в Figma](https://www.figma.com/file/rAqh620xYdvEDdC9LauaRX/TrelloReplica)

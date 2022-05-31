@@ -6,6 +6,9 @@ from starlette.requests import Request
 from starlette.templating import Jinja2Templates
 from fastapi import WebSocket
 
+from website.database import session_maker
+from website.models import Color
+
 config = Config(
     ".env"
 )  # Получаем кофигурационные переменные (токены для гугл аккаунта)
@@ -21,6 +24,26 @@ oauth.register(
 
 # Объект для отрисовки шаблонов с помощью Jinja2Templates
 templates = Jinja2Templates(directory="website/templates")
+
+session = session_maker()
+is_color = session.query(Color).filter(Color.id == 1).first()
+
+if not is_color:
+    color_blue = Color(id=1, value="primary", description="Синий")
+    session.add(color_blue)
+    color_gray = Color(id=2, value="secondary", description="Серый")
+    session.add(color_gray)
+    color_green = Color(id=3, value="success", description="Зелёный")
+    session.add(color_green)
+    color_red = Color(id=4, value="danger", description="Красный")
+    session.add(color_red)
+    color_yellow = Color(id=5, value="warning", description="Жёлтый")
+    session.add(color_yellow)
+    color_light_blue = Color(id=6, value="info", description="Голубой")
+    session.add(color_light_blue)
+    color_black = Color(id=7, value="dark", description="Чёрный")
+    session.add(color_black)
+    session.commit()
 
 
 def flash(request: Request, message: Any, category: str = "primary") -> None:
