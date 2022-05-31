@@ -32,6 +32,14 @@
             }
         });
     }
+
+    $.ajax({
+        type: "GET",
+        url: "http://127.0.0.1:8000/start_track",
+        success: function (data) {
+            console.log(data.toString);
+        }
+    });
 </script>
 <form action="/find_board" method="post" name="form">
     <label for="name">Введите название доски:</label>

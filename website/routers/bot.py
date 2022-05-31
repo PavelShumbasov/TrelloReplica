@@ -29,7 +29,7 @@ def subscribe_on_events(request: Request, user=Depends(manager), db=Depends(get_
 
 @router.post("/subscribe_on_events")
 async def subscribe_on_events(
-        request: Request, user=Depends(manager), db=Depends(get_db)
+    request: Request, user=Depends(manager), db=Depends(get_db)
 ):
     """Подписка на уведомления с помощью id для телеграма"""
     tg_id = (await request.form()).get("tg_id")
@@ -60,7 +60,7 @@ async def subscribe_on_events(
 
 @router.get("/unsubscribe_from_events")
 def unsubscribe_from_events(
-        request: Request, user=Depends(manager), db=Depends(get_db)
+    request: Request, user=Depends(manager), db=Depends(get_db)
 ):
     """Отписываемся от уведомлений бота"""
     tg_user = db.query(TgUser).filter(TgUser.user_id == user.id).first()
