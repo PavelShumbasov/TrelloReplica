@@ -72,7 +72,7 @@ async def import_board(
         db.commit()
         flash(request, "Задачи добавлены", category="alert alert-success")
 
-        tg_users = get_participants_tg_id(db, board, user)
+        tg_users = get_participants_tg_id(db, board)
         for tg_user in tg_users:
             import_to_board_message(tg_user.tg_id, board.name, user.username)
         return templates.TemplateResponse(
