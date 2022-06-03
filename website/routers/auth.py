@@ -16,7 +16,7 @@ router = APIRouter(tags=["auth"])  # Создаем подприложение
 
 
 # Класс-исключение, которое будет выбрасываться, если пользователь неавторизован
-class NotAuthenticatedException(Exception):
+class NotAuthenticatedException(Exception):  # pragma: no cover
     pass
 
 
@@ -134,14 +134,14 @@ def logout(request: Request, user: User = Depends(manager)):
 
 
 @router.get("/login_google")
-async def login_google(request: Request):
+async def login_google(request: Request):  # pragma: no cover
     """OAUTH2 с помощью Google."""
     redirect_uri = request.url_for("auth")
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 
 @router.get("/auth")
-async def auth(request: Request, db: Session = Depends(get_db)):
+async def auth(request: Request, db: Session = Depends(get_db)):  # pragma: no cover
     """Авторизация на сайте с помощью токена из гугл. Заменяем гугл-токен на нашу альтернативу"""
     try:
         token = await oauth.google.authorize_access_token(request)
@@ -156,6 +156,8 @@ async def auth(request: Request, db: Session = Depends(get_db)):
     if not user:
         user = User(email=user_email, username=username, password=None)
         db.add(user)
+        tg_user = TgUser(user_id=user.id, tg_id=None)
+        db.add(tg_user)
         db.commit()
 
     access_token = manager.create_access_token(
@@ -211,4 +213,6 @@ async def edit(
         manager.set_cookie(resp, access_token)
         return resp
 
-    return templates.TemplateResponse("edit_profile.html", {"request": request})
+    return templates.TemplateResponse(
+        "edit_profile.html", {"request": request, "user": current_user}
+    )

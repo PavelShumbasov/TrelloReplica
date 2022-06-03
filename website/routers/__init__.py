@@ -20,7 +20,7 @@ oauth.register(
     name="google",
     server_metadata_url=CONF_URL,
     client_kwargs={"scope": "openid email profile"},
-)
+)  # pragma: no cover
 
 # Объект для отрисовки шаблонов с помощью Jinja2Templates
 templates = Jinja2Templates(directory="website/templates")
@@ -28,7 +28,7 @@ templates = Jinja2Templates(directory="website/templates")
 session = session_maker()
 is_color = session.query(Color).filter(Color.id == 1).first()
 
-if not is_color:
+if not is_color:  # pragma: no cover
     color_blue = Color(id=1, value="primary", description="Синий")
     session.add(color_blue)
     color_gray = Color(id=2, value="secondary", description="Серый")
@@ -46,14 +46,16 @@ if not is_color:
     session.commit()
 
 
-def flash(request: Request, message: Any, category: str = "primary") -> None:
+def flash(
+    request: Request, message: Any, category: str = "primary"
+) -> None:  # pragma: no cover
     """Функция, которая вставляет новую информацию в запрос для отрисовки уведомлений"""
     if "_messages" not in request.session:
         request.session["_messages"] = []
     request.session["_messages"].append({"message": message, "category": category})
 
 
-def get_flashed_messages(request: Request):
+def get_flashed_messages(request: Request):  # pragma: no cover
     """Получение данных с запроса"""
     return request.session.pop("_messages") if "_messages" in request.session else []
 
@@ -62,7 +64,7 @@ def get_flashed_messages(request: Request):
 templates.env.globals["get_flashed_messages"] = get_flashed_messages
 
 
-class ConnectionManager:
+class ConnectionManager:  # pragma: no cover
     """Объект, который хранит данные о подключенных соединениях и отсоединяет их в случае отключения."""
 
     def __init__(self):

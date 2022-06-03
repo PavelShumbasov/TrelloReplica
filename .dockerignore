@@ -6,8 +6,6 @@ __pycache__
 pip-log.txt
 pip-delete-this-directory.txt
 .tox
-.coverage
-.coverage.*
 .cache
 nosetests.xml
 coverage.xml

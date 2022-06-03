@@ -15,11 +15,14 @@ class User(Base):
     email = Column(String(64))
     password = Column(String(256))
 
-    boards = relationship("Board", back_populates="author")
-    tasks = relationship("Task", back_populates="author")
-    tg_user = relationship("TgUser", back_populates="user")
+    boards = relationship("Board", back_populates="author", cascade="all, delete")
+    tasks = relationship("Task", back_populates="author", cascade="all, delete")
+    tg_user = relationship("TgUser", back_populates="user", cascade="all, delete")
     collaborators = relationship(
-        "Collaborator", back_populates="user", foreign_keys="Collaborator.user_id"
+        "Collaborator",
+        back_populates="user",
+        foreign_keys="Collaborator.user_id",
+        cascade="all, delete",
     )
 
     def __repr__(self):  # Перегрузка текстового представления
@@ -88,7 +91,7 @@ class BColumn(Base):
         return f"<BColumn({self.id},{self.name})>"
 
 
-class Color(Base):
+class Color(Base):  # pragma: no cover
     __tablename__ = "color"
     id = Column(
         Integer, nullable=False, unique=True, primary_key=True, autoincrement=True
@@ -131,7 +134,7 @@ class Task(Base):
         return f"<Task({self.id},{self.text})>"
 
 
-class Tag(Base):
+class Tag(Base):  # pragma: no cover
     __tablename__ = "tag"
     id = Column(
         Integer, nullable=False, unique=True, primary_key=True, autoincrement=True

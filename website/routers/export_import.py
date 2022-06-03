@@ -17,7 +17,7 @@ router = APIRouter(tags=["auth"])
 ENCODING = "utf-8-sig"
 
 
-@router.post("/import/{board_id}")
+@router.post("/import/{board_id}")  # pragma: no cover
 async def import_board(
     board_id: int,
     request: Request,
@@ -99,7 +99,7 @@ def import_board(
     )
 
 
-@router.get("/export/{board_id}")
+@router.get("/export/{board_id}")  # pragma: no cover
 async def export_board(
     board_id: int, request: Request, user=Depends(manager), db=Depends(get_db)
 ):

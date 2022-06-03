@@ -1,2 +1,2 @@
-from .database import DATABASE_URL, engine, Base
-from .models import *
+from .database import DATABASE_URL, engine, Base  # pragma: no cover
+from .models import *  # pragma: no cover

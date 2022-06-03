@@ -1,5 +1,4 @@
 import json
-from typing import Callable
 from datetime import timedelta, date, datetime
 from asyncio import sleep, create_task
 
@@ -364,11 +363,11 @@ def add_collaborator(
         tg_user = (
             db.query(TgUser).where(TgUser.user_id == new_collaborator.user_id).first()
         )
-        if tg_user:
-            tg_user_id = tg_user.tg_id
-            as_collaborator_added_message(tg_user_id, board.name)
-            db.add(new_collaborator)
-            db.commit()
+
+        tg_user_id = tg_user.tg_id
+        as_collaborator_added_message(tg_user_id, board.name)
+        db.add(new_collaborator)
+        db.commit()
 
         tg_users = get_participants_tg_id(db, board)
         for tg_user in tg_users:
@@ -681,7 +680,7 @@ async def edit_column(
     )
 
 
-def change_task_column(db: Session, task_id: int, col_id_new: int):
+def change_task_column(db: Session, task_id: int, col_id_new: int):  # pragma: no cover
     """Изменение колонки у задачи для перетаскивания задач с помощью мыши"""
     task = db.query(Task).filter(Task.id == task_id).first()
     task.column_id = col_id_new
@@ -707,7 +706,9 @@ def get_participants_tg_id(db: Session, board: Board):
 
 
 @router.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)):
+async def websocket_endpoint(
+    websocket: WebSocket, db: Session = Depends(get_db)
+):  # pragma: no cover
     """Получение данных о перемещении задач с помощью веб-сокета"""
     await connection_manager.connect(websocket)
     try:
@@ -721,7 +722,7 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)
         connection_manager.disconnect(websocket)
 
 
-async def get_updates(db: Session):
+async def get_updates(db: Session):  # pragma: no cover
     delay = 86400
     print(get_db())
     while True:
@@ -742,7 +743,7 @@ async def get_updates(db: Session):
 
 
 @router.on_event("startup")
-async def startup(db: Session = Depends(get_db)):
+async def startup(db: Session = Depends(get_db)):  # pragma: no cover
     print(db)
     create_task(get_updates(db))
 
@@ -751,11 +752,32 @@ IS_TRACING_DEADLINES = False
 
 
 @router.get("/start_track")
-async def start_track(request: Request, db: Session = Depends(get_db)):
+async def start_track(
+    request: Request, db: Session = Depends(get_db)
+):  # pragma: no cover
     """Запуск проверки дедлайна для задач"""
     global IS_TRACING_DEADLINES
     if not IS_TRACING_DEADLINES:
         create_task(get_updates(db))
         IS_TRACING_DEADLINES = True
 
+    return "OK"
+
+
+@router.get("/delete_test_users")
+async def delete_test_users(request: Request, db: Session = Depends(get_db)):
+    """Удаление тестовых пользователей"""
+    users = (
+        db.query(User)
+        .filter(User.username.in_(["TestUser1", "TestUser2", "TestUser3"]))
+        .all()
+    )
+    themes = db.query(Theme).filter(Theme.name == "TestTheme1").first()
+    if themes:
+        db.delete(themes)
+    if not users:
+        return "no users"
+    for user in users:
+        db.delete(user)
+    db.commit()
     return "OK"
